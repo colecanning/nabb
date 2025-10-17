@@ -308,24 +308,27 @@ Instagram sends POST requests when new messages arrive.
 **Request Body:**
 ```json
 {
-  "object": "page",
+  "object": "instagram",
   "entry": [
     {
-      "id": "page_id",
-      "time": 1234567890,
-      "messaging": [
+      "id": "instagram_business_account_id",
+      "time": 1569262486134,
+      "changes": [
         {
-          "sender": {
-            "id": "sender_instagram_id"
-          },
-          "recipient": {
-            "id": "your_instagram_business_id"
-          },
-          "timestamp": 1234567890,
-          "message": {
-            "mid": "message_id",
-            "text": "Message text",
-            "attachments": []
+          "field": "messages",
+          "value": {
+            "sender": {
+              "id": "sender_instagram_id"
+            },
+            "recipient": {
+              "id": "your_instagram_business_id"
+            },
+            "timestamp": "1527459824",
+            "message": {
+              "mid": "message_id",
+              "text": "Message text",
+              "attachments": []
+            }
           }
         }
       ]
