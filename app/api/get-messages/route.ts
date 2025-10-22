@@ -82,7 +82,7 @@ export async function GET() {
 
     // Get conversations with pagination
     const allConversations: Conversation[] = [];
-    let conversationsUrl = `https://graph.facebook.com/v21.0/${igUserId}/conversations?platform=instagram&limit=100&access_token=${pageAccessToken}`;
+    let conversationsUrl = `https://graph.facebook.com/v24.0/${igUserId}/conversations?platform=instagram&limit=100&access_token=${pageAccessToken}`;
     
     console.log('Fetching conversations from:', conversationsUrl);
     
@@ -135,7 +135,7 @@ export async function GET() {
         try {
           // Fetch all messages with pagination
           const allMessages: Message[] = [];
-          let messagesUrl = `https://graph.facebook.com/v21.0/${conversation.id}?fields=id,updated_time,participants,messages.limit(100){id,created_time,from,to,message,shares,attachments}&access_token=${pageAccessToken}`;
+          let messagesUrl = `https://graph.facebook.com/v24.0/${conversation.id}?fields=id,updated_time,participants,messages.limit(100){id,created_time,from,to,message,shares,attachments}&access_token=${pageAccessToken}`;
           
           while (messagesUrl) {
             const messagesResponse = await fetch(messagesUrl);
