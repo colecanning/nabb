@@ -39,6 +39,11 @@ export default function Home() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [messagesError, setMessagesError] = useState<string | null>(null);
+  const [rawApiResponse, setRawApiResponse] = useState<any>(null);
+  
+  const [webhookJson, setWebhookJson] = useState('');
+  const [webhookLoading, setWebhookLoading] = useState(false);
+  const [webhookResponse, setWebhookResponse] = useState<{ status?: number; data?: any; error?: string } | null>(null);
 
   const fetchMessages = async (silent = false) => {
     if (!silent) {
@@ -52,6 +57,7 @@ export default function Home() {
 
       if (data.success) {
         setConversations(data.data);
+        setRawApiResponse(data); // Store the complete API response
       } else {
         setMessagesError(data.error || 'Failed to fetch messages');
       }
@@ -116,6 +122,78 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleWebhookSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWebhookLoading(true);
+    setWebhookResponse(null);
+
+    try {
+      // Parse the JSON to validate it
+      const parsedJson = JSON.parse(webhookJson);
+
+      // Send to webhook endpoint
+      const res = await fetch('/api/webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(parsedJson),
+      });
+
+      const data = await res.json();
+      setWebhookResponse({
+        status: res.status,
+        data: data,
+      });
+
+      // Refresh messages after a short delay in case the webhook triggered something
+      setTimeout(() => fetchMessages(true), 1000);
+    } catch (error) {
+      setWebhookResponse({
+        error: error instanceof Error ? error.message : 'Invalid JSON or request failed',
+      });
+    } finally {
+      setWebhookLoading(false);
+    }
+  };
+
+  const loadExampleWebhook = () => {
+    const exampleWebhook = {
+      "object": "instagram",
+      "entry": [
+        {
+          "time": 1761172378459,
+          "id": "17841477359317156",
+          "messaging": [
+            {
+              "sender": {
+                "id": "3113785858790603"
+              },
+              "recipient": {
+                "id": "17841477359317156"
+              },
+              "timestamp": 1761172375330,
+              "message": {
+                "mid": "aWdfZAG1faXRlbToxOklHTWVzc2FnZAUlEOjE3ODQxNDc3MzU5MzE3MTU2OjM0MDI4MjM2Njg0MTcxMDMwMTI0NDI2MDAyODQ1MTA3MzEzMjg1NTozMjQ4Nzg5NjA3NzQwMTMzMDI3Nzc3MDY2NzYwMjQ3NzA1NgZDZD",
+                "attachments": [
+                  {
+                    "type": "ig_reel",
+                    "payload": {
+                      "reel_video_id": "17873858025351922",
+                      "title": "You can not build a business without doubting something along the way. Moving past it is just a part of the process. #entrepreneur #doubts #startup #building",
+                      "url": "https://lookaside.fbsbx.com/ig_messaging_cdn/?asset_id=17873858025351922&signature=AYd2HENtt2pTmKBPqpk1U8Ry4ruk-FysXleWRRwz-IL-d5emxHA1o671vDFWAIlVo2WjzLv3BnCVQ3FwNJdA0wjKuKTKSkpLvClj6LnnO354W-TWjUQ8VSv9Ox9AmR1y0JeLinMi41q0yjv4XkVSnmUN2DPh-92yKAHW1jb34BWCQV27iOv0yVDiqT2vHa8x-tEg9bfytOLGVUG_4pUmDASfq4c9k1u1"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    };
+    setWebhookJson(JSON.stringify(exampleWebhook, null, 2));
   };
 
   return (
@@ -387,6 +465,183 @@ export default function Home() {
                   }}>
                     {JSON.stringify(response.details, null, 2)}
                   </pre>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '30px',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        marginTop: '30px'
+      }}>
+        <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>Webhook Event Simulator</h2>
+        <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
+          Test your webhook endpoint by simulating Instagram webhook events. Paste your webhook JSON below or use the example.
+        </p>
+
+        <div style={{
+          backgroundColor: '#fff3e0',
+          padding: '12px 16px',
+          borderRadius: '6px',
+          marginBottom: '20px',
+          borderLeft: '4px solid #ff9800'
+        }}>
+          <p style={{ fontSize: '14px', color: '#e65100', margin: '0', lineHeight: '1.6' }}>
+            🧪 <strong>Testing Tool:</strong> This simulates receiving a webhook event from Instagram. The JSON will be sent to your <code>/api/webhook</code> endpoint.
+          </p>
+        </div>
+
+        <form onSubmit={handleWebhookSubmit}>
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '8px'
+            }}>
+              <label 
+                htmlFor="webhookJson" 
+                style={{ 
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: '#333'
+                }}
+              >
+                Webhook JSON
+              </label>
+              <button
+                type="button"
+                onClick={loadExampleWebhook}
+                style={{
+                  fontSize: '13px',
+                  padding: '6px 12px',
+                  backgroundColor: '#9c27b0',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                Load Example
+              </button>
+            </div>
+            <textarea
+              id="webhookJson"
+              value={webhookJson}
+              onChange={(e) => setWebhookJson(e.target.value)}
+              required
+              placeholder="Paste Instagram webhook JSON here..."
+              rows={12}
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '13px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '6px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                resize: 'vertical',
+                boxSizing: 'border-box',
+                backgroundColor: '#fafafa'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#9c27b0'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={webhookLoading}
+            style={{
+              width: '100%',
+              padding: '14px',
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#ffffff',
+              backgroundColor: webhookLoading ? '#9e9e9e' : '#9c27b0',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: webhookLoading ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.2s',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            }}
+            onMouseEnter={(e) => {
+              if (!webhookLoading) e.currentTarget.style.backgroundColor = '#7b1fa2';
+            }}
+            onMouseLeave={(e) => {
+              if (!webhookLoading) e.currentTarget.style.backgroundColor = '#9c27b0';
+            }}
+          >
+            {webhookLoading ? 'Sending to Webhook...' : 'Simulate Webhook Event'}
+          </button>
+        </form>
+
+        {webhookResponse && (
+          <div style={{
+            marginTop: '20px',
+            padding: '16px',
+            borderRadius: '6px',
+            backgroundColor: webhookResponse.error ? '#ffebee' : '#e8f5e9',
+            border: `1px solid ${webhookResponse.error ? '#f44336' : '#4caf50'}`
+          }}>
+            {webhookResponse.error ? (
+              <>
+                <p style={{ 
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: '#c62828',
+                  marginBottom: '8px'
+                }}>
+                  ❌ Error
+                </p>
+                <p style={{ fontSize: '14px', color: '#555' }}>
+                  {webhookResponse.error}
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ 
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: '#2e7d32',
+                  marginBottom: '8px'
+                }}>
+                  ✅ Webhook event sent successfully
+                </p>
+                <p style={{ fontSize: '14px', color: '#555', marginBottom: '8px' }}>
+                  Status: {webhookResponse.status}
+                </p>
+                {webhookResponse.data && (
+                  <details style={{ marginTop: '8px' }}>
+                    <summary style={{
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#2e7d32',
+                      padding: '4px 0'
+                    }}>
+                      View Response
+                    </summary>
+                    <pre style={{
+                      fontSize: '12px',
+                      marginTop: '8px',
+                      padding: '12px',
+                      backgroundColor: '#fff',
+                      borderRadius: '4px',
+                      overflow: 'auto',
+                      fontFamily: 'Monaco, Consolas, "Courier New", monospace'
+                    }}>
+                      {JSON.stringify(webhookResponse.data, null, 2)}
+                    </pre>
+                  </details>
                 )}
               </>
             )}
@@ -741,6 +996,62 @@ export default function Home() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '30px',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        marginTop: '30px'
+      }}>
+        <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>Raw API Response</h2>
+        <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
+          Complete JSON response from the Facebook Graph API for debugging
+        </p>
+        
+        {rawApiResponse ? (
+          <details style={{ cursor: 'pointer' }}>
+            <summary style={{
+              fontSize: '14px',
+              fontWeight: '600',
+              padding: '12px',
+              backgroundColor: '#f5f5f5',
+              borderRadius: '6px',
+              marginBottom: '12px',
+              userSelect: 'none'
+            }}>
+              Click to expand/collapse JSON
+            </summary>
+            <pre style={{
+              backgroundColor: '#263238',
+              color: '#aed581',
+              padding: '20px',
+              borderRadius: '6px',
+              overflow: 'auto',
+              fontSize: '12px',
+              lineHeight: '1.5',
+              maxHeight: '600px',
+              margin: '0',
+              fontFamily: 'Monaco, Consolas, "Courier New", monospace'
+            }}>
+              {JSON.stringify(rawApiResponse, null, 2)}
+            </pre>
+          </details>
+        ) : (
+          <div style={{
+            padding: '40px',
+            textAlign: 'center',
+            backgroundColor: '#f5f5f5',
+            borderRadius: '6px',
+            color: '#666'
+          }}>
+            <p style={{ fontSize: '14px', margin: '0' }}>
+              No API response yet. Fetch messages to see the raw JSON data.
+            </p>
           </div>
         )}
       </div>

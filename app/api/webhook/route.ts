@@ -150,3 +150,41 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/*
+Example Webhook
+Received webhook: {
+  "object": "instagram",
+  "entry": [
+    {
+      "time": 1761172378459,
+      "id": "17841477359317156",
+      "messaging": [
+        {
+          "sender": {
+            "id": "3113785858790603"
+          },
+          "recipient": {
+            "id": "17841477359317156"
+          },
+          "timestamp": 1761172375330,
+          "message": {
+            "mid": "aWdfZAG1faXRlbToxOklHTWVzc2FnZAUlEOjE3ODQxNDc3MzU5MzE3MTU2OjM0MDI4MjM2Njg0MTcxMDMwMTI0NDI2MDAyODQ1MTA3MzEzMjg1NTozMjQ4Nzg5NjA3NzQwMTMzMDI3Nzc3MDY2NzYwMjQ3NzA1NgZDZD",
+            "attachments": [
+              {
+                "type": "ig_reel",
+                "payload": {
+                  "reel_video_id": "17873858025351922",
+                  "title": "You can not build a business without doubting something along the way. Moving past it is just a part of the process. #entrepreneur #doubts #startup #building",
+                  "url": "https://lookaside.fbsbx.com/ig_messaging_cdn/?asset_id=17873858025351922&signature=AYd2HENtt2pTmKBPqpk1U8Ry4ruk-FysXleWRRwz-IL-d5emxHA1o671vDFWAIlVo2WjzLv3BnCVQ3FwNJdA0wjKuKTKSkpLvClj6LnnO354W-TWjUQ8VSv9Ox9AmR1y0JeLinMi41q0yjv4XkVSnmUN2DPh-92yKAHW1jb34BWCQV27iOv0yVDiqT2vHa8x-tEg9bfytOLGVUG_4pUmDASfq4c9k1u1"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+
+
+*/

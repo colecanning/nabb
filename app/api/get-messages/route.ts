@@ -12,6 +12,30 @@ interface Conversation {
   };
 }
 
+interface Share {
+  id: string;
+  link?: string;
+}
+
+interface Attachment {
+  id: string;
+  image_data?: {
+    url: string;
+    preview_url?: string;
+    width?: number;
+    height?: number;
+  };
+  video_data?: {
+    url: string;
+    preview_url?: string;
+    width?: number;
+    height?: number;
+  };
+  mime_type?: string;
+  name?: string;
+  size?: number;
+}
+
 interface Message {
   id: string;
   created_time: string;
@@ -27,7 +51,13 @@ interface Message {
       name?: string;
     }>;
   };
-  message: string;
+  message?: string;
+  shares?: {
+    data: Share[];
+  };
+  attachments?: {
+    data: Attachment[];
+  };
 }
 
 interface ConversationWithMessages extends Conversation {
@@ -41,7 +71,7 @@ export async function GET() {
   try {
     // Validate environment variables
     const pageAccessToken = process.env.PAGE_ACCESS_TOKEN;
-    const igUserId = process.env.PAGE_ID;
+    const igUserId = process.env.IG_USER_ID;
 
     if (!pageAccessToken || !igUserId) {
       return NextResponse.json(
@@ -103,28 +133,54 @@ export async function GET() {
     const conversationsWithMessages: ConversationWithMessages[] = await Promise.all(
       conversations.map(async (conversation: Conversation) => {
         try {
-          const messagesUrl = `https://graph.facebook.com/v21.0/${conversation.id}?fields=id,updated_time,participants,messages.limit(100){id,created_time,from,to,message}&access_token=${pageAccessToken}`;
-          const messagesResponse = await fetch(messagesUrl);
-          const messagesData = await messagesResponse.json();
+          // Fetch all messages with pagination
+          const allMessages: Message[] = [];
+          let messagesUrl = `https://graph.facebook.com/v21.0/${conversation.id}?fields=id,updated_time,participants,messages.limit(100){id,created_time,from,to,message,shares,attachments}&access_token=${pageAccessToken}`;
+          
+          while (messagesUrl) {
+            const messagesResponse = await fetch(messagesUrl);
+            const messagesData = await messagesResponse.json();
 
-          if (messagesResponse.ok && !messagesData.error) {
-            // Add the recipient_id by finding the user ID from messages
-            // Check messages to find the ID that is NOT the business account
-            if (messagesData.messages?.data && messagesData.messages.data.length > 0) {
-              const firstMessage = messagesData.messages.data[0];
-              
-              // If the message is FROM the user (to the business), use from.id
-              if (firstMessage.from?.id !== igUserId) {
-                messagesData.recipient_id = firstMessage.from.id;
-              } 
-              // If the message is FROM the business (to the user), use to.data[0].id
-              else if (firstMessage.to?.data && firstMessage.to.data.length > 0) {
-                const recipientInTo = firstMessage.to.data.find((p: any) => p.id !== igUserId);
-                messagesData.recipient_id = recipientInTo?.id;
+            if (messagesResponse.ok && !messagesData.error) {
+              // Collect messages from this page
+              if (messagesData.messages?.data && messagesData.messages.data.length > 0) {
+                allMessages.push(...messagesData.messages.data);
               }
+
+              // Check if there's a next page of messages
+              messagesUrl = messagesData.messages?.paging?.next || '';
+              
+              // If this is the last page, process the conversation data
+              if (!messagesUrl) {
+                // Add the recipient_id by finding the user ID from messages
+                // Check messages to find the ID that is NOT the business account
+                if (allMessages.length > 0) {
+                  const firstMessage = allMessages[0];
+                  
+                  // If the message is FROM the user (to the business), use from.id
+                  if (firstMessage.from?.id !== igUserId) {
+                    messagesData.recipient_id = firstMessage.from.id;
+                  } 
+                  // If the message is FROM the business (to the user), use to.data[0].id
+                  else if (firstMessage.to?.data && firstMessage.to.data.length > 0) {
+                    const recipientInTo = firstMessage.to.data.find((p: any) => p.id !== igUserId);
+                    messagesData.recipient_id = recipientInTo?.id;
+                  }
+                }
+                
+                // Replace the messages data with all collected messages
+                messagesData.messages = {
+                  data: allMessages
+                };
+                
+                return messagesData;
+              }
+            } else {
+              // Error fetching messages, break the loop
+              break;
             }
-            return messagesData;
           }
+          
           return conversation;
         } catch (error) {
           console.error('Error fetching messages for conversation:', conversation.id, error);

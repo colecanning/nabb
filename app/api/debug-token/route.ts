@@ -18,7 +18,7 @@ export async function GET() {
     const debugData = await debugResponse.json();
 
     // Get token info
-    const meUrl = `https://graph.facebook.com/v21.0/me?access_token=${pageAccessToken}`;
+    const meUrl = `https://graph.facebook.com/v24.0/me?access_token=${pageAccessToken}`;
     const meResponse = await fetch(meUrl);
     const meData = await meResponse.json();
 

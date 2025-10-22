@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Instagram Graph API
-    const apiUrl = `https://graph.facebook.com/v21.0/${igUserId}/messages`;
+    const apiUrl = `https://graph.facebook.com/v24.0/${igUserId}/messages`;
     
     // Build the request payload
     const payload: any = {
