@@ -45,6 +45,18 @@ export default function Home() {
   const [webhookLoading, setWebhookLoading] = useState(false);
   const [webhookResponse, setWebhookResponse] = useState<{ status?: number; data?: any; error?: string } | null>(null);
 
+  const [videoUrl, setVideoUrl] = useState('');
+  const [transcriptionLoading, setTranscriptionLoading] = useState(false);
+  const [transcriptionResult, setTranscriptionResult] = useState<{ success?: boolean; transcription?: string; error?: string; details?: any } | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<{ success?: boolean; results?: Array<{ title: string; url: string; snippet: string; raw: any }>; error?: string; query?: string } | null>(null);
+
+  const [serpQuery, setSerpQuery] = useState('');
+  const [serpLoading, setSerpLoading] = useState(false);
+  const [serpResults, setSerpResults] = useState<{ success?: boolean; results?: Array<{ title: string; url: string; snippet: string; position: number; raw: any }>; error?: string; query?: string; originalQuery?: string; wasTruncated?: boolean; metadata?: any; fullResponse?: any } | null>(null);
+
   const fetchMessages = async (silent = false) => {
     if (!silent) {
       setLoadingMessages(true);
@@ -194,6 +206,84 @@ export default function Home() {
       ]
     };
     setWebhookJson(JSON.stringify(exampleWebhook, null, 2));
+  };
+
+  const handleTranscribeVideo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTranscriptionLoading(true);
+    setTranscriptionResult(null);
+
+    try {
+      const res = await fetch('/api/transcribe-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoUrl }),
+      });
+
+      const data = await res.json();
+      setTranscriptionResult(data);
+
+    } catch (error) {
+      setTranscriptionResult({
+        error: error instanceof Error ? error.message : 'Failed to transcribe video',
+      });
+    } finally {
+      setTranscriptionLoading(false);
+    }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchLoading(true);
+    setSearchResults(null);
+
+    try {
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: searchQuery }),
+      });
+
+      const data = await res.json();
+      setSearchResults(data);
+
+    } catch (error) {
+      setSearchResults({
+        error: error instanceof Error ? error.message : 'Failed to perform search',
+      });
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleSerpSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSerpLoading(true);
+    setSerpResults(null);
+
+    try {
+      const res = await fetch('/api/search-serp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: serpQuery }),
+      });
+
+      const data = await res.json();
+      setSerpResults(data);
+
+    } catch (error) {
+      setSerpResults({
+        error: error instanceof Error ? error.message : 'Failed to perform SERP API search',
+      });
+    } finally {
+      setSerpLoading(false);
+    }
   };
 
   return (
@@ -644,6 +734,674 @@ export default function Home() {
                   </details>
                 )}
               </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '30px',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        marginTop: '30px'
+      }}>
+        <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>Video Transcription</h2>
+        <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
+          Extract text from video audio using OpenAI Whisper. Paste a direct video URL below.
+        </p>
+
+        <div style={{
+          backgroundColor: '#e8f5e9',
+          padding: '12px 16px',
+          borderRadius: '6px',
+          marginBottom: '20px',
+          borderLeft: '4px solid #4caf50'
+        }}>
+          <p style={{ fontSize: '14px', color: '#1b5e20', margin: '0', lineHeight: '1.6' }}>
+            🎥 <strong>Tip:</strong> Use a direct video file URL (e.g., .mp4, .mov, .m4a). Max file size: 25MB.
+          </p>
+        </div>
+
+        <form onSubmit={handleTranscribeVideo}>
+          <div style={{ marginBottom: '20px' }}>
+            <label 
+              htmlFor="videoUrl" 
+              style={{ 
+                display: 'block', 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                marginBottom: '8px',
+                color: '#333'
+              }}
+            >
+              Video URL
+            </label>
+            <input
+              type="url"
+              id="videoUrl"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              required
+              placeholder="https://example.com/video.mp4"
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '16px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '6px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                boxSizing: 'border-box',
+                fontFamily: 'monospace'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#4caf50'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={transcriptionLoading}
+            style={{
+              width: '100%',
+              padding: '14px',
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#ffffff',
+              backgroundColor: transcriptionLoading ? '#9e9e9e' : '#4caf50',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: transcriptionLoading ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.2s',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            }}
+            onMouseEnter={(e) => {
+              if (!transcriptionLoading) e.currentTarget.style.backgroundColor = '#45a049';
+            }}
+            onMouseLeave={(e) => {
+              if (!transcriptionLoading) e.currentTarget.style.backgroundColor = '#4caf50';
+            }}
+          >
+            {transcriptionLoading ? 'Processing Video...' : '🎙️ Transcribe Video'}
+          </button>
+        </form>
+
+        {transcriptionResult && (
+          <div style={{
+            marginTop: '20px',
+            padding: '16px',
+            borderRadius: '6px',
+            backgroundColor: transcriptionResult.success ? '#e8f5e9' : '#ffebee',
+            border: `1px solid ${transcriptionResult.success ? '#4caf50' : '#f44336'}`
+          }}>
+            {transcriptionResult.success ? (
+              <>
+                <p style={{ 
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: '#2e7d32',
+                  marginBottom: '12px'
+                }}>
+                  ✅ Transcription Complete
+                </p>
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  padding: '16px',
+                  borderRadius: '6px',
+                  border: '1px solid #c8e6c9',
+                  marginTop: '12px'
+                }}>
+                  <p style={{ 
+                    fontSize: '14px', 
+                    fontWeight: '600', 
+                    color: '#333',
+                    marginBottom: '8px'
+                  }}>
+                    Transcribed Text:
+                  </p>
+                  <p style={{ 
+                    fontSize: '14px', 
+                    color: '#555',
+                    lineHeight: '1.6',
+                    whiteSpace: 'pre-wrap',
+                    margin: '0'
+                  }}>
+                    {transcriptionResult.transcription}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{ 
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: '#c62828',
+                  marginBottom: '8px'
+                }}>
+                  ❌ Error transcribing video
+                </p>
+                <p style={{ fontSize: '14px', color: '#555' }}>
+                  {transcriptionResult.error || 'Unknown error occurred'}
+                </p>
+                {transcriptionResult.details && (
+                  <pre style={{
+                    fontSize: '12px',
+                    marginTop: '8px',
+                    padding: '8px',
+                    backgroundColor: '#fff',
+                    borderRadius: '4px',
+                    overflow: 'auto'
+                  }}>
+                    {JSON.stringify(transcriptionResult.details, null, 2)}
+                  </pre>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '30px',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        marginTop: '30px'
+      }}>
+        <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>DuckDuckGo Search</h2>
+        <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
+          Search the web using DuckDuckGo and get the top 5 results.
+        </p>
+
+        <div style={{
+          backgroundColor: '#fff8e1',
+          padding: '12px 16px',
+          borderRadius: '6px',
+          marginBottom: '20px',
+          borderLeft: '4px solid #ffc107'
+        }}>
+          <p style={{ fontSize: '14px', color: '#f57f17', margin: '0', lineHeight: '1.6' }}>
+            🔍 <strong>Tip:</strong> Enter any search query to find relevant web results.
+          </p>
+        </div>
+
+        <form onSubmit={handleSearch}>
+          <div style={{ marginBottom: '20px' }}>
+            <label 
+              htmlFor="searchQuery" 
+              style={{ 
+                display: 'block', 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                marginBottom: '8px',
+                color: '#333'
+              }}
+            >
+              Search Query
+            </label>
+            <input
+              type="text"
+              id="searchQuery"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              required
+              placeholder="What would you like to search for?"
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '16px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '6px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                boxSizing: 'border-box'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#ffc107'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={searchLoading}
+            style={{
+              width: '100%',
+              padding: '14px',
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#ffffff',
+              backgroundColor: searchLoading ? '#9e9e9e' : '#ffc107',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: searchLoading ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.2s',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            }}
+            onMouseEnter={(e) => {
+              if (!searchLoading) e.currentTarget.style.backgroundColor = '#ffb300';
+            }}
+            onMouseLeave={(e) => {
+              if (!searchLoading) e.currentTarget.style.backgroundColor = '#ffc107';
+            }}
+          >
+            {searchLoading ? 'Searching...' : '🔍 Search'}
+          </button>
+        </form>
+
+        {searchResults && (
+          <div style={{
+            marginTop: '20px',
+          }}>
+            {searchResults.success && searchResults.results ? (
+              <>
+                <div style={{
+                  padding: '12px 16px',
+                  backgroundColor: '#e8f5e9',
+                  border: '1px solid #4caf50',
+                  borderRadius: '6px',
+                  marginBottom: '16px'
+                }}>
+                  <p style={{ 
+                    fontSize: '16px', 
+                    fontWeight: '600', 
+                    color: '#2e7d32',
+                    margin: '0'
+                  }}>
+                    ✅ Found {searchResults.results.length} results for "{searchResults.query}"
+                  </p>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {searchResults.results.map((result, index) => (
+                    <div 
+                      key={index}
+                      style={{
+                        padding: '16px',
+                        backgroundColor: '#fafafa',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '6px',
+                        transition: 'box-shadow 0.2s, border-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+                        e.currentTarget.style.borderColor = '#ffc107';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.borderColor = '#e0e0e0';
+                      }}
+                    >
+                      <div style={{ marginBottom: '8px' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: '#ffffff',
+                          backgroundColor: '#ffc107',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          marginBottom: '8px'
+                        }}>
+                          #{index + 1}
+                        </span>
+                      </div>
+                      <a 
+                        href={result.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: '18px',
+                          fontWeight: '600',
+                          color: '#1976d2',
+                          textDecoration: 'none',
+                          display: 'block',
+                          marginBottom: '8px'
+                        }}
+                      >
+                        {result.title}
+                      </a>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#555',
+                        lineHeight: '1.6',
+                        margin: '0 0 8px 0'
+                      }}>
+                        {result.snippet}
+                      </p>
+                      <p style={{
+                        fontSize: '12px',
+                        color: '#888',
+                        margin: '0 0 12px 0',
+                        wordBreak: 'break-all',
+                        fontFamily: 'monospace'
+                      }}>
+                        {result.url}
+                      </p>
+                      
+                      {result.raw && (
+                        <details style={{ marginTop: '8px' }}>
+                          <summary style={{
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#ffc107',
+                            padding: '4px 0'
+                          }}>
+                            View Raw Data
+                          </summary>
+                          <pre style={{
+                            fontSize: '11px',
+                            marginTop: '8px',
+                            padding: '12px',
+                            backgroundColor: '#263238',
+                            color: '#aed581',
+                            borderRadius: '4px',
+                            overflow: 'auto',
+                            fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                            maxHeight: '300px'
+                          }}>
+                            {JSON.stringify(result.raw, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div style={{
+                padding: '16px',
+                borderRadius: '6px',
+                backgroundColor: '#ffebee',
+                border: '1px solid #f44336'
+              }}>
+                <p style={{ 
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: '#c62828',
+                  marginBottom: '8px'
+                }}>
+                  ❌ Error performing search
+                </p>
+                <p style={{ fontSize: '14px', color: '#555', margin: '0' }}>
+                  {searchResults.error || 'Unknown error occurred'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '30px',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        marginTop: '30px'
+      }}>
+        <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>DuckDuckGo SERP API Search</h2>
+        <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
+          Search using SerpAPI's DuckDuckGo endpoint for structured JSON results.
+        </p>
+
+        <div style={{
+          backgroundColor: '#e8eaf6',
+          padding: '12px 16px',
+          borderRadius: '6px',
+          marginBottom: '20px',
+          borderLeft: '4px solid #3f51b5'
+        }}>
+          <p style={{ fontSize: '14px', color: '#1a237e', margin: '0', lineHeight: '1.6' }}>
+            🚀 <strong>API-Powered:</strong> Uses SerpAPI for reliable, structured search data with rich metadata. Requires API key.
+          </p>
+        </div>
+
+        <form onSubmit={handleSerpSearch}>
+          <div style={{ marginBottom: '20px' }}>
+            <label 
+              htmlFor="serpQuery" 
+              style={{ 
+                display: 'block', 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                marginBottom: '8px',
+                color: '#333'
+              }}
+            >
+              Search Query
+            </label>
+            <input
+              type="text"
+              id="serpQuery"
+              value={serpQuery}
+              onChange={(e) => setSerpQuery(e.target.value)}
+              required
+              placeholder="What would you like to search for?"
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '16px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '6px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                boxSizing: 'border-box'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#3f51b5'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={serpLoading}
+            style={{
+              width: '100%',
+              padding: '14px',
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#ffffff',
+              backgroundColor: serpLoading ? '#9e9e9e' : '#3f51b5',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: serpLoading ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.2s',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            }}
+            onMouseEnter={(e) => {
+              if (!serpLoading) e.currentTarget.style.backgroundColor = '#303f9f';
+            }}
+            onMouseLeave={(e) => {
+              if (!serpLoading) e.currentTarget.style.backgroundColor = '#3f51b5';
+            }}
+          >
+            {serpLoading ? 'Searching via SERP API...' : '🚀 Search with SERP API'}
+          </button>
+        </form>
+
+        {serpResults && (
+          <div style={{
+            marginTop: '20px',
+          }}>
+            {serpResults.success && serpResults.results ? (
+              <>
+                <div style={{
+                  padding: '12px 16px',
+                  backgroundColor: '#e8f5e9',
+                  border: '1px solid #4caf50',
+                  borderRadius: '6px',
+                  marginBottom: '16px'
+                }}>
+                  <p style={{ 
+                    fontSize: '16px', 
+                    fontWeight: '600', 
+                    color: '#2e7d32',
+                    margin: '0'
+                  }}>
+                    ✅ Found {serpResults.results.length} results for "{serpResults.query}"
+                  </p>
+                  {serpResults.wasTruncated && (
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#f57c00',
+                      margin: '4px 0 0 0',
+                      fontStyle: 'italic'
+                    }}>
+                      ⚠️ Query was truncated to 50 characters (original: {serpResults.originalQuery?.length} chars)
+                    </p>
+                  )}
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {serpResults.results.map((result, index) => (
+                    <div 
+                      key={index}
+                      style={{
+                        padding: '16px',
+                        backgroundColor: '#fafafa',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '6px',
+                        transition: 'box-shadow 0.2s, border-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+                        e.currentTarget.style.borderColor = '#3f51b5';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.borderColor = '#e0e0e0';
+                      }}
+                    >
+                      <div style={{ marginBottom: '8px' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: '#ffffff',
+                          backgroundColor: '#3f51b5',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          marginBottom: '8px'
+                        }}>
+                          Position #{result.position}
+                        </span>
+                      </div>
+                      <a 
+                        href={result.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontSize: '18px',
+                          fontWeight: '600',
+                          color: '#1976d2',
+                          textDecoration: 'none',
+                          display: 'block',
+                          marginBottom: '8px'
+                        }}
+                      >
+                        {result.title}
+                      </a>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#555',
+                        lineHeight: '1.6',
+                        margin: '0 0 8px 0'
+                      }}>
+                        {result.snippet}
+                      </p>
+                      <p style={{
+                        fontSize: '12px',
+                        color: '#888',
+                        margin: '0 0 12px 0',
+                        wordBreak: 'break-all',
+                        fontFamily: 'monospace'
+                      }}>
+                        {result.url}
+                      </p>
+                      
+                      {result.raw && (
+                        <details style={{ marginTop: '8px' }}>
+                          <summary style={{
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#3f51b5',
+                            padding: '4px 0'
+                          }}>
+                            View Raw SERP Data
+                          </summary>
+                          <pre style={{
+                            fontSize: '11px',
+                            marginTop: '8px',
+                            padding: '12px',
+                            backgroundColor: '#263238',
+                            color: '#aed581',
+                            borderRadius: '4px',
+                            overflow: 'auto',
+                            fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                            maxHeight: '300px'
+                          }}>
+                            {JSON.stringify(result.raw, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {serpResults.metadata && (
+                  <details style={{ marginTop: '20px' }}>
+                    <summary style={{
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#3f51b5',
+                      padding: '12px',
+                      backgroundColor: '#f5f5f5',
+                      borderRadius: '6px',
+                      userSelect: 'none'
+                    }}>
+                      View Search Metadata & Full API Response
+                    </summary>
+                    <pre style={{
+                      fontSize: '11px',
+                      marginTop: '12px',
+                      padding: '16px',
+                      backgroundColor: '#263238',
+                      color: '#aed581',
+                      borderRadius: '6px',
+                      overflow: 'auto',
+                      fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                      maxHeight: '600px'
+                    }}>
+                      {JSON.stringify(serpResults.fullResponse, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </>
+            ) : (
+              <div style={{
+                padding: '16px',
+                borderRadius: '6px',
+                backgroundColor: '#ffebee',
+                border: '1px solid #f44336'
+              }}>
+                <p style={{ 
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: '#c62828',
+                  marginBottom: '8px'
+                }}>
+                  ❌ Error performing SERP API search
+                </p>
+                <p style={{ fontSize: '14px', color: '#555', margin: '0' }}>
+                  {serpResults.error || 'Unknown error occurred'}
+                </p>
+              </div>
             )}
           </div>
         )}
