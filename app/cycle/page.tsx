@@ -848,6 +848,20 @@ export default function CyclePage() {
           🎯 Find Match
         </button>
       </div>
+
+      {/* Result Section */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '30px',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        marginTop: '30px'
+      }}>
+        <h2 style={{ fontSize: '28px', marginTop: '0', marginBottom: '20px' }}>Result</h2>
+        
+        {/* Content will be added here */}
+      </div>
     </main>
   );
 }
