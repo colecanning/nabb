@@ -182,46 +182,6 @@ export async function POST(request: NextRequest) {
       console.log('Sample of HTML:', html.substring(0, 2000));
     }
 
-    // Get video duration using a video element in the browser
-    let videoDuration = null;
-    
-    if (videoUrl) {
-      try {
-        console.log('Getting video duration from video element...');
-        
-        // Use Puppeteer to load the video and get its duration
-        // This reads just the video metadata, not the full video
-        videoDuration = await page.evaluate(async (url) => {
-          return new Promise((resolve) => {
-            const video = document.createElement('video');
-            video.preload = 'metadata';
-            
-            video.onloadedmetadata = () => {
-              resolve(video.duration);
-            };
-            
-            video.onerror = () => {
-              resolve(null);
-            };
-            
-            // Timeout after 10 seconds
-            setTimeout(() => resolve(null), 10000);
-            
-            video.src = url;
-          });
-        }, videoUrl);
-        
-        if (videoDuration) {
-          console.log('✅ Video duration:', videoDuration, 'seconds');
-        } else {
-          console.log('⚠️ Could not get video duration');
-        }
-      } catch (error) {
-        console.error('⚠️ Failed to get video duration:', error instanceof Error ? error.message : error);
-        // Continue even if duration extraction fails - duration is optional
-      }
-    }
-
     // Download the video if URL was found
     let downloadedVideoPath = null;
     
@@ -262,12 +222,10 @@ export async function POST(request: NextRequest) {
       description: description,
       videoUrl: videoUrl,
       downloadedVideoPath: downloadedVideoPath,
-      videoDuration: videoDuration,
       url: url,
       debug: {
         htmlLength: html.length,
         foundVideoUrl: !!videoUrl,
-        foundDuration: !!videoDuration,
       }
     });
 

@@ -7,10 +7,11 @@ export default function CyclePage() {
   const [url, setUrl] = useState('https://www.instagram.com/p/DPU1DUPj65g/');
   
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ success?: boolean; description?: string; videoUrl?: string; downloadedVideoPath?: string; videoDuration?: number | null; error?: string; debug?: any } | null>(null);
+  const [result, setResult] = useState<{ success?: boolean; description?: string; videoUrl?: string; downloadedVideoPath?: string; error?: string; debug?: any } | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [descriptionText, setDescriptionText] = useState('');
   const [videoDuration, setVideoDuration] = useState('');
+  const [processingDuration, setProcessingDuration] = useState(false);
   const [transcription, setTranscription] = useState('');
   const [transcribing, setTranscribing] = useState(false);
   const [searchResults, setSearchResults] = useState<Array<{ title: string; url: string; snippet: string; position: number; duration?: string | null; thumbnail?: string | null; raw?: any }> | null>(null);
@@ -37,7 +38,6 @@ export default function CyclePage() {
       if (data.success) {
         setVideoUrl(data.videoUrl || '');
         setDescriptionText(data.description || '');
-        setVideoDuration(data.videoDuration ? `${Math.round(data.videoDuration)}s` : '');
       }
     } catch (error) {
       setResult({
@@ -45,6 +45,38 @@ export default function CyclePage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGetDuration = async () => {
+    if (!videoUrl) {
+      alert('Please process an Instagram link first to get a video URL');
+      return;
+    }
+
+    setProcessingDuration(true);
+    setVideoDuration('');
+
+    try {
+      const res = await fetch('/api/get-video-duration', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoUrl }),
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        setVideoDuration(data.duration ? `${Math.round(data.duration)}s` : '');
+      } else {
+        alert(`Failed to get duration: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert(`Duration error: ${error instanceof Error ? error.message : 'Failed to get duration'}`);
+    } finally {
+      setProcessingDuration(false);
     }
   };
 
@@ -238,42 +270,6 @@ export default function CyclePage() {
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label 
-              htmlFor="videoDuration" 
-              style={{ 
-                display: 'block', 
-                fontSize: '16px', 
-                fontWeight: '600', 
-                marginBottom: '8px',
-                color: '#333'
-              }}
-            >
-              Video Duration
-            </label>
-            <input
-              type="text"
-              id="videoDuration"
-              value={videoDuration}
-              onChange={(e) => setVideoDuration(e.target.value)}
-              placeholder="Duration will appear here after processing"
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '16px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '6px',
-                outline: 'none',
-                transition: 'border-color 0.2s',
-                boxSizing: 'border-box',
-                fontFamily: 'monospace',
-                backgroundColor: '#f9f9f9'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#e1306c'}
-              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-            />
-          </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -360,28 +356,14 @@ export default function CyclePage() {
                       alignItems: 'center',
                       marginBottom: '8px'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <p style={{ 
-                          fontSize: '14px', 
-                          fontWeight: '600', 
-                          color: '#333',
-                          margin: '0'
-                        }}>
-                          Video:
-                        </p>
-                        {result.videoDuration && (
-                          <span style={{
-                            fontSize: '12px',
-                            color: '#fff',
-                            backgroundColor: '#000',
-                            padding: '2px 6px',
-                            borderRadius: '3px',
-                            fontWeight: '600'
-                          }}>
-                            ⏱️ {Math.round(result.videoDuration)}s
-                          </span>
-                        )}
-                      </div>
+                      <p style={{ 
+                        fontSize: '14px', 
+                        fontWeight: '600', 
+                        color: '#333',
+                        margin: '0'
+                      }}>
+                        Video:
+                      </p>
                       {result.downloadedVideoPath && (
                         <a
                           href={result.downloadedVideoPath}
@@ -485,6 +467,93 @@ export default function CyclePage() {
               </>
             )}
           </div>
+        )}
+      </div>
+
+      {/* Get Audio Length Section */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '30px',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        marginTop: '30px'
+      }}>
+        <h2 style={{ fontSize: '28px', marginTop: '0', marginBottom: '20px' }}>Get Audio Length</h2>
+        
+        <div style={{ marginBottom: '20px' }}>
+          <label 
+            htmlFor="videoDuration" 
+            style={{ 
+              display: 'block', 
+              fontSize: '16px', 
+              fontWeight: '600', 
+              marginBottom: '8px',
+              color: '#333'
+            }}
+          >
+            Video Duration
+          </label>
+          <input
+            type="text"
+            id="videoDuration"
+            value={videoDuration}
+            onChange={(e) => setVideoDuration(e.target.value)}
+            placeholder="Click 'Process' to get video duration"
+            style={{
+              width: '100%',
+              padding: '12px',
+              fontSize: '16px',
+              border: '2px solid #e0e0e0',
+              borderRadius: '6px',
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              boxSizing: 'border-box',
+              fontFamily: 'monospace',
+              backgroundColor: '#f9f9f9'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#e1306c'}
+            onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGetDuration}
+          disabled={processingDuration || !videoUrl}
+          style={{
+            width: '100%',
+            padding: '14px',
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#ffffff',
+            backgroundColor: processingDuration || !videoUrl ? '#9e9e9e' : '#ff9800',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: processingDuration || !videoUrl ? 'not-allowed' : 'pointer',
+            transition: 'background-color 0.2s',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+          }}
+          onMouseEnter={(e) => {
+            if (!processingDuration && videoUrl) e.currentTarget.style.backgroundColor = '#f57c00';
+          }}
+          onMouseLeave={(e) => {
+            if (!processingDuration && videoUrl) e.currentTarget.style.backgroundColor = '#ff9800';
+          }}
+        >
+          {processingDuration ? '⏱️ Processing...' : '⏱️ Process'}
+        </button>
+
+        {!videoUrl && (
+          <p style={{
+            fontSize: '14px',
+            color: '#666',
+            fontStyle: 'italic',
+            marginTop: '12px',
+            marginBottom: '0'
+          }}>
+            Process an Instagram link above to enable duration extraction
+          </p>
         )}
       </div>
 
