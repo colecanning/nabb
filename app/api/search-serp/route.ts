@@ -11,8 +11,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Limit query to first 50 characters
-    const limitedQuery = query.substring(0, 50);
+    // Limit query to first 50 characters and add Instagram site filter
+    const limitedQuery = query.substring(0, 100);
+    const instagramQuery = `${limitedQuery} site:instagram.com`;
 
     const serpApiKey = process.env.SERPAPI_API_KEY;
     if (!serpApiKey) {
@@ -22,13 +23,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Searching DuckDuckGo via SerpAPI for:', limitedQuery, limitedQuery.length < query.length ? `(truncated from ${query.length} chars)` : '');
+    console.log('Searching Google via SerpAPI for:', instagramQuery, limitedQuery.length < query.length ? `(truncated from ${query.length} chars)` : '');
 
-    // Use SerpAPI's DuckDuckGo search endpoint
+    // Use SerpAPI's Google search endpoint with Instagram site filter
     const searchUrl = new URL('https://serpapi.com/search');
     // searchUrl.searchParams.append('engine', 'duckduckgo');
     searchUrl.searchParams.append('engine', 'google');
-    searchUrl.searchParams.append('q', limitedQuery);
+    searchUrl.searchParams.append('q', instagramQuery);
     searchUrl.searchParams.append('api_key', serpApiKey);
     
     // Add timeout to prevent hanging
@@ -78,11 +79,23 @@ export async function POST(request: NextRequest) {
 
     // Extract organic results (top 5)
     const organicResults = data.organic_results || [];
+    
+    // Log first result structure for debugging
+    if (organicResults.length > 0) {
+      console.log('Sample result structure:', JSON.stringify(organicResults[0], null, 2));
+    }
+    
     const results = organicResults.slice(0, 5).map((result: any, index: number) => ({
       title: result.title || 'No title',
       url: result.link || '',
       snippet: result.snippet || 'No description available',
       position: result.position || index + 1,
+      // Try to extract video duration from various possible fields
+      duration: result.rich_snippet?.extensions?.duration || 
+                result.video?.duration || 
+                result.duration || 
+                null,
+      thumbnail: result.thumbnail || null,
       raw: result // Include all raw data from SerpAPI
     }));
 
@@ -96,7 +109,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       results: results,
-      query: limitedQuery,
+      query: instagramQuery,
       originalQuery: query,
       wasTruncated: limitedQuery.length < query.length,
       metadata: {

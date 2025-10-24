@@ -3,13 +3,18 @@
 import { useState } from 'react';
 
 export default function CyclePage() {
-  const [url, setUrl] = useState('https://www.instagram.com/reel/DCKH6RPSKDe/');
+  // const [url, setUrl] = useState('https://www.instagram.com/reel/DCKH6RPSKDe/');
+  const [url, setUrl] = useState('https://www.instagram.com/p/DPU1DUPj65g/');
+  
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ success?: boolean; description?: string; videoUrl?: string; downloadedVideoPath?: string; error?: string; debug?: any } | null>(null);
+  const [result, setResult] = useState<{ success?: boolean; description?: string; videoUrl?: string; downloadedVideoPath?: string; videoDuration?: number | null; error?: string; debug?: any } | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [descriptionText, setDescriptionText] = useState('');
+  const [videoDuration, setVideoDuration] = useState('');
   const [transcription, setTranscription] = useState('');
   const [transcribing, setTranscribing] = useState(false);
+  const [searchResults, setSearchResults] = useState<Array<{ title: string; url: string; snippet: string; position: number; duration?: string | null; thumbnail?: string | null; raw?: any }> | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const handleProcess = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +37,7 @@ export default function CyclePage() {
       if (data.success) {
         setVideoUrl(data.videoUrl || '');
         setDescriptionText(data.description || '');
+        setVideoDuration(data.videoDuration ? `${Math.round(data.videoDuration)}s` : '');
       }
     } catch (error) {
       setResult({
@@ -71,6 +77,38 @@ export default function CyclePage() {
       alert(`Transcription error: ${error instanceof Error ? error.message : 'Failed to transcribe'}`);
     } finally {
       setTranscribing(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!descriptionText) {
+      alert('Please process an Instagram link first to get a description');
+      return;
+    }
+
+    setSearching(true);
+    setSearchResults(null);
+
+    try {
+      const res = await fetch('/api/search-serp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: descriptionText }),
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        setSearchResults(data.results || []);
+      } else {
+        alert(`Search failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert(`Search error: ${error instanceof Error ? error.message : 'Failed to search'}`);
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -200,6 +238,42 @@ export default function CyclePage() {
             />
           </div>
 
+          <div style={{ marginBottom: '20px' }}>
+            <label 
+              htmlFor="videoDuration" 
+              style={{ 
+                display: 'block', 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                marginBottom: '8px',
+                color: '#333'
+              }}
+            >
+              Video Duration
+            </label>
+            <input
+              type="text"
+              id="videoDuration"
+              value={videoDuration}
+              onChange={(e) => setVideoDuration(e.target.value)}
+              placeholder="Duration will appear here after processing"
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '16px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '6px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                boxSizing: 'border-box',
+                fontFamily: 'monospace',
+                backgroundColor: '#f9f9f9'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#e1306c'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+            />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
@@ -286,14 +360,28 @@ export default function CyclePage() {
                       alignItems: 'center',
                       marginBottom: '8px'
                     }}>
-                      <p style={{ 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#333',
-                        margin: '0'
-                      }}>
-                        Video:
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <p style={{ 
+                          fontSize: '14px', 
+                          fontWeight: '600', 
+                          color: '#333',
+                          margin: '0'
+                        }}>
+                          Video:
+                        </p>
+                        {result.videoDuration && (
+                          <span style={{
+                            fontSize: '12px',
+                            color: '#fff',
+                            backgroundColor: '#000',
+                            padding: '2px 6px',
+                            borderRadius: '3px',
+                            fontWeight: '600'
+                          }}>
+                            ⏱️ {Math.round(result.videoDuration)}s
+                          </span>
+                        )}
+                      </div>
                       {result.downloadedVideoPath && (
                         <a
                           href={result.downloadedVideoPath}
@@ -486,6 +574,210 @@ export default function CyclePage() {
             Process an Instagram link above to enable transcription
           </p>
         )}
+      </div>
+
+      {/* Find Instagram Reel Section */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '30px',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        marginTop: '30px'
+      }}>
+        <h2 style={{ fontSize: '28px', marginTop: '0', marginBottom: '20px' }}>Find Instagram Reels</h2>
+        
+        <button
+          type="button"
+          onClick={handleSearch}
+          disabled={searching || !descriptionText}
+          style={{
+            width: '100%',
+            padding: '14px',
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#ffffff',
+            backgroundColor: searching || !descriptionText ? '#9e9e9e' : '#4285f4',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: searching || !descriptionText ? 'not-allowed' : 'pointer',
+            transition: 'background-color 0.2s',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+          }}
+          onMouseEnter={(e) => {
+            if (!searching && descriptionText) e.currentTarget.style.backgroundColor = '#357ae8';
+          }}
+          onMouseLeave={(e) => {
+            if (!searching && descriptionText) e.currentTarget.style.backgroundColor = '#4285f4';
+          }}
+        >
+          {searching ? '🔍 Searching...' : '🔍 Search'}
+        </button>
+
+        {!descriptionText && (
+          <p style={{
+            fontSize: '14px',
+            color: '#666',
+            fontStyle: 'italic',
+            marginTop: '12px',
+            marginBottom: '0'
+          }}>
+            Process an Instagram link above to enable search
+          </p>
+        )}
+
+        {searchResults && searchResults.length > 0 && (
+          <div style={{ marginTop: '20px' }}>
+            <h3 style={{ 
+              fontSize: '20px', 
+              marginTop: '0', 
+              marginBottom: '16px',
+              color: '#333'
+            }}>
+              Search Results
+            </h3>
+            {searchResults.map((result, index) => (
+              <div 
+                key={index}
+                style={{
+                  backgroundColor: '#f9f9f9',
+                  padding: '16px',
+                  borderRadius: '6px',
+                  border: '1px solid #e0e0e0',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  gap: '12px'
+                }}
+              >
+                {result.thumbnail && (
+                  <img 
+                    src={result.thumbnail}
+                    alt={result.title}
+                    style={{
+                      width: '120px',
+                      height: '120px',
+                      objectFit: 'cover',
+                      borderRadius: '4px',
+                      flexShrink: 0
+                    }}
+                  />
+                )}
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <a
+                      href={result.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: '18px',
+                        fontWeight: '600',
+                        color: '#1a73e8',
+                        textDecoration: 'none'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                      onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                    >
+                      {result.title}
+                    </a>
+                    {result.duration && (
+                      <span style={{
+                        fontSize: '12px',
+                        color: '#fff',
+                        backgroundColor: '#000',
+                        padding: '2px 6px',
+                        borderRadius: '3px',
+                        fontWeight: '600'
+                      }}>
+                        ⏱️ {result.duration}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#555',
+                    lineHeight: '1.6',
+                    margin: '0 0 8px 0'
+                  }}>
+                    {result.snippet}
+                  </p>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#006621',
+                    margin: '0 0 12px 0',
+                    fontFamily: 'monospace',
+                    wordBreak: 'break-all'
+                  }}>
+                    {result.url}
+                  </p>
+                  {result.raw && (
+                    <details style={{ marginTop: '12px' }}>
+                      <summary style={{
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        color: '#4285f4',
+                        padding: '4px 0',
+                        userSelect: 'none'
+                      }}>
+                        View Raw SerpAPI Data
+                      </summary>
+                      <pre style={{
+                        fontSize: '11px',
+                        marginTop: '8px',
+                        padding: '12px',
+                        backgroundColor: '#263238',
+                        color: '#aed581',
+                        borderRadius: '4px',
+                        overflow: 'auto',
+                        fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                        maxHeight: '400px'
+                      }}>
+                        {JSON.stringify(result.raw, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Find Match Section */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '30px',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        marginTop: '30px'
+      }}>
+        <h2 style={{ fontSize: '28px', marginTop: '0', marginBottom: '20px' }}>Find Match</h2>
+        
+        <button
+          type="button"
+          style={{
+            width: '100%',
+            padding: '14px',
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#ffffff',
+            backgroundColor: '#34a853',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#2d8e47';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#34a853';
+          }}
+        >
+          🎯 Find Match
+        </button>
       </div>
     </main>
   );
