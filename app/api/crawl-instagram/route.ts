@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import puppeteer from 'puppeteer';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 export async function POST(request: NextRequest) {
   let browser;
@@ -48,11 +51,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Wait a bit longer for dynamic content to load
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
     // Get the page content after JavaScript execution
     const html = await page.content();
     
     console.log('HTML length:', html.length);
     console.log('First 500 chars:', html.substring(0, 500));
+    
+    // Save HTML to file for debugging
+    try {
+      const debugDir = join(process.cwd(), 'public', 'debug');
+      if (!existsSync(debugDir)) {
+        await mkdir(debugDir, { recursive: true });
+      }
+      const timestamp = Date.now();
+      const htmlPath = join(debugDir, `instagram_${timestamp}.html`);
+      await writeFile(htmlPath, html);
+      console.log('Saved HTML to:', htmlPath);
+    } catch (err) {
+      console.error('Failed to save debug HTML:', err);
+    }
     
     let description = null;
     
@@ -89,6 +109,51 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Try to extract video URL from Instagram's JSON data
+    let videoUrl = null;
+    
+    console.log('Searching for video URL in HTML (length:', html.length, ')');
+    
+    // Instagram embeds video data in <script type="application/json"> tags
+    // Look for "video_versions" array which contains the actual video URLs
+    const videoVersionsMatch = html.match(/"video_versions"\s*:\s*\[([^\]]+)\]/);
+    
+    if (videoVersionsMatch) {
+      console.log('Found video_versions array in JSON');
+      const videoVersionsStr = videoVersionsMatch[0];
+      
+      // Extract URL from the first video version
+      const urlMatch = videoVersionsStr.match(/"url"\s*:\s*"([^"]+)"/);
+      if (urlMatch && urlMatch[1]) {
+        // Unescape the URL (Instagram uses \/ for forward slashes)
+        videoUrl = urlMatch[1]
+          .replace(/\\\//g, '/')
+          .replace(/\\u0026/g, '&')
+          .replace(/\\"/g, '"');
+        
+        console.log('✅ Extracted video URL from video_versions:', videoUrl.substring(0, 100) + '...');
+      }
+    }
+    
+    // Fallback: Look for og:video meta tag
+    if (!videoUrl) {
+      console.log('Trying og:video meta tags as fallback...');
+      const ogVideoPatterns = [
+        /<meta\s+property=["']og:video["']\s+content=["']([^"']+)["']/i,
+        /<meta\s+content=["']([^"']+)["']\s+property=["']og:video["']/i,
+        /<meta\s+property=["']og:video:secure_url["']\s+content=["']([^"']+)["']/i,
+      ];
+      
+      for (const pattern of ogVideoPatterns) {
+        const match = html.match(pattern);
+        if (match && match[1] && !match[1].startsWith('blob:')) {
+          videoUrl = match[1];
+          console.log('Found video URL in og:video meta tag:', videoUrl);
+          break;
+        }
+      }
+    }
+    
     if (!description) {
       // Extract a snippet of meta tags for debugging
       const metaTagsMatch = html.match(/<head>[\s\S]*?<\/head>/i);
@@ -103,16 +168,65 @@ export async function POST(request: NextRequest) {
             htmlLength: html.length,
             headSnippet: headContent,
             hasMetaTags: html.includes('<meta'),
+            videoUrl: videoUrl,
+            hasScriptTags: html.includes('<script'),
           }
         },
         { status: 404 }
       );
     }
+    
+    // Log if no video URL found for debugging
+    if (!videoUrl) {
+      console.log('⚠️ Warning: No video URL found');
+      console.log('Sample of HTML:', html.substring(0, 2000));
+    }
+
+    // Download the video if URL was found
+    let downloadedVideoPath = null;
+    
+    if (videoUrl) {
+      try {
+        console.log('Downloading video from:', videoUrl);
+        
+        // Create downloads directory if it doesn't exist
+        const downloadsDir = join(process.cwd(), 'public', 'downloads');
+        if (!existsSync(downloadsDir)) {
+          await mkdir(downloadsDir, { recursive: true });
+        }
+        
+        // Generate filename from URL or timestamp
+        const timestamp = Date.now();
+        const reelId = url.split('/reel/')[1]?.split('/')[0] || timestamp;
+        const filename = `reel_${reelId}_${timestamp}.mp4`;
+        const filepath = join(downloadsDir, filename);
+        
+        // Download the video
+        const videoResponse = await fetch(videoUrl);
+        if (videoResponse.ok) {
+          const buffer = await videoResponse.arrayBuffer();
+          await writeFile(filepath, Buffer.from(buffer));
+          downloadedVideoPath = `/downloads/${filename}`;
+          console.log('Video downloaded to:', downloadedVideoPath);
+        } else {
+          console.error('Failed to download video:', videoResponse.status);
+        }
+      } catch (downloadError) {
+        console.error('Error downloading video:', downloadError);
+        // Continue even if download fails
+      }
+    }
 
     return NextResponse.json({
       success: true,
       description: description,
+      videoUrl: videoUrl,
+      downloadedVideoPath: downloadedVideoPath,
       url: url,
+      debug: {
+        htmlLength: html.length,
+        foundVideoUrl: !!videoUrl,
+      }
     });
 
   } catch (error) {

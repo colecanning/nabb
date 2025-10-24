@@ -5,7 +5,11 @@ import { useState } from 'react';
 export default function CyclePage() {
   const [url, setUrl] = useState('https://www.instagram.com/reel/DCKH6RPSKDe/');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ success?: boolean; description?: string; error?: string; debug?: any } | null>(null);
+  const [result, setResult] = useState<{ success?: boolean; description?: string; videoUrl?: string; downloadedVideoPath?: string; error?: string; debug?: any } | null>(null);
+  const [videoUrl, setVideoUrl] = useState('');
+  const [descriptionText, setDescriptionText] = useState('');
+  const [transcription, setTranscription] = useState('');
+  const [transcribing, setTranscribing] = useState(false);
 
   const handleProcess = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,12 +27,50 @@ export default function CyclePage() {
 
       const data = await res.json();
       setResult(data);
+      
+      // Populate the state variables when successful
+      if (data.success) {
+        setVideoUrl(data.videoUrl || '');
+        setDescriptionText(data.description || '');
+      }
     } catch (error) {
       setResult({
         error: error instanceof Error ? error.message : 'Failed to process URL',
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTranscribe = async () => {
+    if (!videoUrl) {
+      alert('Please process an Instagram link first to get a video URL');
+      return;
+    }
+
+    setTranscribing(true);
+    setTranscription('');
+
+    try {
+      const res = await fetch('/api/transcribe-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoUrl }),
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        setTranscription(data.transcription || '');
+      } else {
+        alert(`Transcription failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert(`Transcription error: ${error instanceof Error ? error.message : 'Failed to transcribe'}`);
+    } finally {
+      setTranscribing(false);
     }
   };
 
@@ -85,6 +127,79 @@ export default function CyclePage() {
             />
           </div>
 
+          <div style={{ marginBottom: '20px' }}>
+            <label 
+              htmlFor="videoUrl" 
+              style={{ 
+                display: 'block', 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                marginBottom: '8px',
+                color: '#333'
+              }}
+            >
+              Video URL
+            </label>
+            <input
+              type="text"
+              id="videoUrl"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              placeholder="Video URL will appear here after processing"
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '16px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '6px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                boxSizing: 'border-box',
+                fontFamily: 'monospace',
+                backgroundColor: '#f9f9f9'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#e1306c'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label 
+              htmlFor="descriptionText" 
+              style={{ 
+                display: 'block', 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                marginBottom: '8px',
+                color: '#333'
+              }}
+            >
+              Description
+            </label>
+            <textarea
+              id="descriptionText"
+              value={descriptionText}
+              onChange={(e) => setDescriptionText(e.target.value)}
+              placeholder="Description will appear here after processing"
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '16px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '6px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                boxSizing: 'border-box',
+                fontFamily: 'system-ui, sans-serif',
+                backgroundColor: '#f9f9f9',
+                resize: 'vertical'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#e1306c'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+            />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
@@ -128,23 +243,117 @@ export default function CyclePage() {
                   color: '#2e7d32',
                   marginBottom: '12px'
                 }}>
-                  ✅ Description Extracted
+                  ✅ Content Extracted
                 </p>
-                <div style={{
-                  backgroundColor: '#ffffff',
-                  padding: '16px',
-                  borderRadius: '6px',
-                  border: '1px solid #c8e6c9'
-                }}>
-                  <p style={{ 
-                    fontSize: '14px', 
-                    color: '#555',
-                    lineHeight: '1.6',
-                    margin: '0'
+                
+                {result.description && (
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    padding: '16px',
+                    borderRadius: '6px',
+                    border: '1px solid #c8e6c9',
+                    marginBottom: '16px'
                   }}>
-                    {result.description}
+                    <p style={{ 
+                      fontSize: '14px', 
+                      fontWeight: '600', 
+                      color: '#333',
+                      marginBottom: '8px'
+                    }}>
+                      Description:
+                    </p>
+                    <p style={{ 
+                      fontSize: '14px', 
+                      color: '#555',
+                      lineHeight: '1.6',
+                      margin: '0'
+                    }}>
+                      {result.description}
+                    </p>
+                  </div>
+                )}
+
+                {(result.videoUrl || result.downloadedVideoPath) && (
+                  <div style={{
+                    backgroundColor: '#ffffff',
+                    padding: '16px',
+                    borderRadius: '6px',
+                    border: '1px solid #c8e6c9'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '8px'
+                    }}>
+                      <p style={{ 
+                        fontSize: '14px', 
+                        fontWeight: '600', 
+                        color: '#333',
+                        margin: '0'
+                      }}>
+                        Video:
+                      </p>
+                      {result.downloadedVideoPath && (
+                        <a
+                          href={result.downloadedVideoPath}
+                          download
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            color: '#ffffff',
+                            backgroundColor: '#4caf50',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            textDecoration: 'none',
+                            display: 'inline-block'
+                          }}
+                        >
+                          📥 Download
+                        </a>
+                      )}
+                    </div>
+                    <video 
+                      controls 
+                      style={{
+                        width: '100%',
+                        maxHeight: '500px',
+                        borderRadius: '6px',
+                        backgroundColor: '#000'
+                      }}
+                    >
+                      <source src={result.downloadedVideoPath || result.videoUrl} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                    {result.downloadedVideoPath && (
+                      <p style={{
+                        fontSize: '12px',
+                        color: '#4caf50',
+                        marginTop: '8px',
+                        fontWeight: '600'
+                      }}>
+                        ✅ Video downloaded and saved locally
+                      </p>
+                    )}
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#888',
+                      marginTop: '4px',
+                      wordBreak: 'break-all',
+                      fontFamily: 'monospace'
+                    }}>
+                      Source: {result.videoUrl}
+                    </p>
+                  </div>
+                )}
+
+                {!result.description && !result.videoUrl && !result.downloadedVideoPath && (
+                  <p style={{ fontSize: '14px', color: '#666', fontStyle: 'italic' }}>
+                    No content extracted
                   </p>
-                </div>
+                )}
               </>
             ) : (
               <>
@@ -188,6 +397,94 @@ export default function CyclePage() {
               </>
             )}
           </div>
+        )}
+      </div>
+
+      {/* Audio Transcription Section */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '30px',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        marginTop: '30px'
+      }}>
+        <h2 style={{ fontSize: '28px', marginTop: '0', marginBottom: '20px' }}>Audio Transcription</h2>
+        
+        <div style={{ marginBottom: '20px' }}>
+          <label 
+            htmlFor="transcription" 
+            style={{ 
+              display: 'block', 
+              fontSize: '16px', 
+              fontWeight: '600', 
+              marginBottom: '8px',
+              color: '#333'
+            }}
+          >
+            Transcription Text
+          </label>
+          <textarea
+            id="transcription"
+            value={transcription}
+            onChange={(e) => setTranscription(e.target.value)}
+            placeholder="Click 'Get Audio Transcript' to transcribe the video"
+            rows={6}
+            style={{
+              width: '100%',
+              padding: '12px',
+              fontSize: '16px',
+              border: '2px solid #e0e0e0',
+              borderRadius: '6px',
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              boxSizing: 'border-box',
+              fontFamily: 'system-ui, sans-serif',
+              backgroundColor: '#f9f9f9',
+              resize: 'vertical'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#e1306c'}
+            onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleTranscribe}
+          disabled={transcribing || !videoUrl}
+          style={{
+            width: '100%',
+            padding: '14px',
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#ffffff',
+            backgroundColor: transcribing || !videoUrl ? '#9e9e9e' : '#833ab4',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: transcribing || !videoUrl ? 'not-allowed' : 'pointer',
+            transition: 'background-color 0.2s',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+          }}
+          onMouseEnter={(e) => {
+            if (!transcribing && videoUrl) e.currentTarget.style.backgroundColor = '#6a2c91';
+          }}
+          onMouseLeave={(e) => {
+            if (!transcribing && videoUrl) e.currentTarget.style.backgroundColor = '#833ab4';
+          }}
+        >
+          {transcribing ? '🎙️ Transcribing...' : '🎙️ Get Audio Transcript'}
+        </button>
+
+        {!videoUrl && (
+          <p style={{
+            fontSize: '14px',
+            color: '#666',
+            fontStyle: 'italic',
+            marginTop: '12px',
+            marginBottom: '0'
+          }}>
+            Process an Instagram link above to enable transcription
+          </p>
         )}
       </div>
     </main>

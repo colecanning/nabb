@@ -38,3 +38,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# downloaded videos
+/public/downloads/
+
+# debug HTML files
+/public/debug/
+
