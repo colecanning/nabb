@@ -110,3 +110,50 @@ export const useSearchResultsStore = create<SearchResultsState>((set) => ({
   reset: () => set({ searchResults: null, searching: false }),
 }));
 
+export interface MatchedResult extends SearchResult {
+  matchScore: number;
+  durationScore: number;
+  titleScore: number;
+}
+
+interface MatchResultsState {
+  matchedResult: MatchedResult | null;
+  findingMatch: boolean;
+  setMatchedResult: (result: MatchedResult | null) => void;
+  setFindingMatch: (finding: boolean) => void;
+  reset: () => void;
+}
+
+export const useMatchResultsStore = create<MatchResultsState>((set) => ({
+  matchedResult: null,
+  findingMatch: false,
+  setMatchedResult: (result) => set({ matchedResult: result }),
+  setFindingMatch: (finding) => set({ findingMatch: finding }),
+  reset: () => set({ matchedResult: null, findingMatch: false }),
+}));
+
+export interface ScrapedMatchData {
+  success?: boolean;
+  title?: string;
+  description?: string;
+  videoUrl?: string;
+  error?: string;
+  debug?: any;
+}
+
+interface ScrapeMatchState {
+  scrapedMatchData: ScrapedMatchData | null;
+  scrapingMatch: boolean;
+  setScrapedMatchData: (data: ScrapedMatchData | null) => void;
+  setScrapingMatch: (scraping: boolean) => void;
+  reset: () => void;
+}
+
+export const useScrapeMatchStore = create<ScrapeMatchState>((set) => ({
+  scrapedMatchData: null,
+  scrapingMatch: false,
+  setScrapedMatchData: (data) => set({ scrapedMatchData: data }),
+  setScrapingMatch: (scraping) => set({ scrapingMatch: scraping }),
+  reset: () => set({ scrapedMatchData: null, scrapingMatch: false }),
+}));
+

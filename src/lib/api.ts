@@ -94,4 +94,3 @@ export async function searchInstagramReels(query: string): Promise<SearchInstagr
     };
   }
 }
-
