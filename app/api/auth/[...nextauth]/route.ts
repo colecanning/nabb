@@ -4,7 +4,7 @@ import GoogleProvider from 'next-auth/providers/google';
 // Comma-separated list of allowed email addresses
 const ALLOWED_EMAILS = process.env.ALLOWED_EMAILS?.split(',').map(email => email.trim()) || [];
 
-export const authOptions: AuthOptions = {
+const authOptions: AuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',

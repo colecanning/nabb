@@ -18,9 +18,10 @@ A Next.js application that enables sending messages to Instagram users on behalf
 Before you begin, ensure you have:
 
 1. **Node.js** (v18 or later) installed
-2. **An Instagram Business or Creator Account** (NOT a personal account)
-3. **A Facebook Page** linked to your Instagram Business account
-4. **Facebook Developer Account** with an app configured for Instagram messaging
+2. **pnpm** (v8 or later) - Install with: `npm install -g pnpm`
+3. **An Instagram Business or Creator Account** (NOT a personal account)
+4. **A Facebook Page** linked to your Instagram Business account
+5. **Facebook Developer Account** with an app configured for Instagram messaging
 
 > ⚠️ **Important:** Your Instagram account MUST be converted to a Business or Creator account and linked to a Facebook Page. Personal Instagram accounts will NOT work. See [INSTAGRAM_SETUP.md](./INSTAGRAM_SETUP.md) for detailed setup instructions.
 
