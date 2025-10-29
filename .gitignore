@@ -6,7 +6,6 @@
 .pnp.js
 node_modules/
 .pnpm-store/
-pnpm-lock.yaml
 
 # testing
 /coverage
