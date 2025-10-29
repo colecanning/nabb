@@ -1,5 +1,5 @@
 // Chromium configuration for Vercel deployment
-import chromium from '@sparticuz/chromium-min';
+import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
 export async function getBrowser() {
@@ -7,7 +7,7 @@ export async function getBrowser() {
   const isProduction = process.env.VERCEL === '1';
 
   if (isProduction) {
-    // Use chromium-min for Vercel (more reliable, no brotli compression issues)
+    // Use chromium for Vercel with version 126.0.0 (stable version)
     const executablePath = await chromium.executablePath();
     
     return await puppeteer.launch({
