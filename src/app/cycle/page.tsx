@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Header from '../components/Header';
-import InstagramReelCrawler from '../components/InstagramReelCrawler';
+import Header from '@/components/Header';
+import InstagramReelCrawler from '@/components/InstagramReelCrawler';
 import { useInstagramWebhookDataStore, useFinalResultStore } from '@/lib/store';
 
 export default function CyclePage() {
