@@ -1,5 +1,5 @@
 // Chromium configuration for Vercel deployment
-import chromium from '@sparticuz/chromium';
+import chromium from '@sparticuz/chromium-min';
 import puppeteer from 'puppeteer-core';
 
 export async function getBrowser() {
@@ -7,14 +7,26 @@ export async function getBrowser() {
   const isProduction = process.env.VERCEL === '1';
 
   if (isProduction) {
-    // Use chromium for Vercel
+    // Use chromium-min for Vercel (more reliable, no brotli compression issues)
     const executablePath = await chromium.executablePath();
     
     return await puppeteer.launch({
-      args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
-      defaultViewport: { width: 1280, height: 800 },
+      args: [
+        ...chromium.args,
+        '--hide-scrollbars',
+        '--disable-web-security',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ],
+      defaultViewport: chromium.defaultViewport,
       executablePath,
-      headless: true,
+      headless: chromium.headless,
     });
   } else {
     // Use local Chromium for development

@@ -15,10 +15,11 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
-    "@sparticuz/chromium": "^141.0.0",
+    "@sparticuz/chromium": "123.0.1",
+    "@sparticuz/chromium-min": "123.0.1",
     "next": "^14.2.0",
     "next-auth": "^4.24.12",
-    "puppeteer-core": "^24.26.1",
+    "puppeteer-core": "^23.0.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
   },
