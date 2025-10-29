@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { transcribeVideo, TranscriptionError } from '@/lib/backend/video-transcription';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,65 +12,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
-      return NextResponse.json(
-        { success: false, error: 'OpenAI API key not configured' },
-        { status: 500 }
-      );
-    }
-
-    // Download the video file
-    console.log('Downloading video from:', videoUrl);
-    const videoResponse = await fetch(videoUrl);
-    
-    if (!videoResponse.ok) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to download video file' },
-        { status: 400 }
-      );
-    }
-
-    const videoBlob = await videoResponse.blob();
-    
-    // Create form data for OpenAI Whisper API
-    const formData = new FormData();
-    formData.append('file', videoBlob, 'video.mp4');
-    formData.append('model', 'whisper-1');
-
-    // Call OpenAI Whisper API
-    console.log('Sending to Whisper API...');
-    const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-      },
-      body: formData,
-    });
-
-    if (!whisperResponse.ok) {
-      const errorData = await whisperResponse.json();
-      console.error('Whisper API error:', errorData);
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Failed to transcribe video',
-          details: errorData
-        },
-        { status: whisperResponse.status }
-      );
-    }
-
-    const transcriptionData = await whisperResponse.json();
-    
-    return NextResponse.json({
-      success: true,
-      transcription: transcriptionData.text,
-      data: transcriptionData,
-    });
+    const result = await transcribeVideo(videoUrl);
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('Transcription error:', error);
+    
+    // Check if it's a custom transcription error with specific handling
+    if (typeof error === 'object' && error !== null && 'success' in error) {
+      const transcriptionError = error as TranscriptionError;
+      
+      // Determine appropriate status code based on error message
+      if (transcriptionError.error.includes('not configured')) {
+        return NextResponse.json(transcriptionError, { status: 500 });
+      } else if (transcriptionError.error.includes('Failed to download')) {
+        return NextResponse.json(transcriptionError, { status: 400 });
+      } else if (transcriptionError.details) {
+        // Whisper API error with details - return 500 as it's an external API failure
+        return NextResponse.json(transcriptionError, { status: 500 });
+      } else {
+        return NextResponse.json(transcriptionError, { status: 400 });
+      }
+    }
+    
+    // Generic error fallback
     return NextResponse.json(
       { 
         success: false, 
