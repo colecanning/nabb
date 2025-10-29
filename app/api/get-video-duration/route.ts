@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
     
     // Use Puppeteer to load the video and get its duration
     // This reads just the video metadata, not the full video
-    const videoDuration = await page.evaluate(async (url) => {
+    // @ts-expect-error - puppeteer-core 23.x has type issues with evaluate, but this works at runtime
+    const videoDuration = await page.evaluate((url: string) => {
       return new Promise((resolve) => {
         const video = document.createElement('video');
         video.preload = 'metadata';
