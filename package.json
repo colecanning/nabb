@@ -20,7 +20,8 @@
     "next-auth": "^4.24.12",
     "puppeteer-core": "24.23.1",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0"
+    "react-dom": "^18.3.0",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
