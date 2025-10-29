@@ -2,34 +2,9 @@
 
 import { useState } from 'react';
 import { useFinalResultStore, useInstagramWebhookDataStore } from '@/lib/store';
+import { crawlInstagram, type CrawlInstagramResult } from '@/lib/api';
 
-interface InstagramReelCrawlerProps {
-
-}
-
-interface CrawlInstagramResult {
-  success?: boolean;
-  title?: string;
-  description?: string;
-  videoUrl?: string;
-  error?: string;
-  debug?: any;
-}
-
-async function crawlInstagram(url: string): Promise<CrawlInstagramResult> {
-  const res = await fetch('/api/crawl-instagram', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ url }),
-  });
-
-  const data = await res.json();
-  return data;
-}
-
-export default function InstagramReelCrawler({}: InstagramReelCrawlerProps) {
+export default function InstagramReelCrawler() {
   // const [url, setUrl] = useState('https://www.instagram.com/reel/DCKH6RPSKDe/');
   const [url, setUrl] = useState('https://www.instagram.com/p/DPU1DUPj65g/');
   
