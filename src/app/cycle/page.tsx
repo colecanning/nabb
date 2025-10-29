@@ -3,15 +3,16 @@
 import { useState } from 'react';
 import Header from '@/components/Header';
 import InstagramReelCrawler from '@/components/InstagramReelCrawler';
-import { useInstagramWebhookDataStore, useFinalResultStore } from '@/lib/store';
+import AudioLengthSection from '@/components/AudioLengthSection';
+import { useInstagramWebhookDataStore, useFinalResultStore, useVideoDurationStore } from '@/lib/store';
 
 export default function CyclePage() {
   // Get Instagram data from Zustand store
   const { videoUrl, titleText, descriptionText } = useInstagramWebhookDataStore();
+  // Get video duration from Zustand store
+  const { videoDuration } = useVideoDurationStore();
   // Get final result from Zustand store
   const { finalResult, updateFinalResult } = useFinalResultStore();
-  const [videoDuration, setVideoDuration] = useState('');
-  const [processingDuration, setProcessingDuration] = useState(false);
   const [transcription, setTranscription] = useState('');
   const [transcribing, setTranscribing] = useState(false);
   const [searchResults, setSearchResults] = useState<Array<{ title: string; url: string; snippet: string; position: number; duration?: string | null; thumbnail?: string | null; raw?: any }> | null>(null);
@@ -20,38 +21,6 @@ export default function CyclePage() {
   const [findingMatch, setFindingMatch] = useState(false);
   const [scrapedMatchData, setScrapedMatchData] = useState<{ success?: boolean; title?: string; description?: string; videoUrl?: string; error?: string; debug?: any } | null>(null);
   const [scrapingMatch, setScrapingMatch] = useState(false);
-
-  const handleGetDuration = async () => {
-    if (!videoUrl) {
-      alert('Please process an Instagram link first to get a video URL');
-      return;
-    }
-
-    setProcessingDuration(true);
-    setVideoDuration('');
-
-    try {
-      const res = await fetch('/api/get-video-duration', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ videoUrl }),
-      });
-
-      const data = await res.json();
-      
-      if (data.success) {
-        setVideoDuration(data.duration ? `${Math.round(data.duration)}s` : '');
-      } else {
-        alert(`Failed to get duration: ${data.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      alert(`Duration error: ${error instanceof Error ? error.message : 'Failed to get duration'}`);
-    } finally {
-      setProcessingDuration(false);
-    }
-  };
 
   const handleTranscribe = async () => {
     if (!videoUrl) {
@@ -291,8 +260,8 @@ export default function CyclePage() {
       console.log('Our title:', titleText);
       console.log('Number of search results:', searchResults.length);
       
-      // Parse our video duration
-      const ourDurationSeconds = parseDurationToSeconds(videoDuration);
+      // Use video duration directly (already in seconds)
+      const ourDurationSeconds = videoDuration;
       console.log('Our duration in seconds:', ourDurationSeconds);
       
       let bestMatch: typeof matchedResult = null;
@@ -381,92 +350,7 @@ export default function CyclePage() {
       
         <InstagramReelCrawler />
 
-      {/* Get Audio Length Section */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        padding: '30px',
-        borderRadius: '8px',
-        border: '1px solid #e0e0e0',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        marginTop: '30px'
-      }}>
-        <h2 style={{ fontSize: '28px', marginTop: '0', marginBottom: '20px' }}>Get Audio Length</h2>
-        
-        <div style={{ marginBottom: '20px' }}>
-          <label 
-            htmlFor="videoDuration" 
-            style={{ 
-              display: 'block', 
-              fontSize: '16px', 
-              fontWeight: '600', 
-              marginBottom: '8px',
-              color: '#333'
-            }}
-          >
-            Video Duration
-          </label>
-          <input
-            type="text"
-            id="videoDuration"
-            value={videoDuration}
-            onChange={(e) => setVideoDuration(e.target.value)}
-            placeholder="Click 'Process' to get video duration"
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '16px',
-              border: '2px solid #e0e0e0',
-              borderRadius: '6px',
-              outline: 'none',
-              transition: 'border-color 0.2s',
-              boxSizing: 'border-box',
-              fontFamily: 'monospace',
-              backgroundColor: '#f9f9f9'
-            }}
-            onFocus={(e) => e.target.style.borderColor = '#e1306c'}
-            onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={handleGetDuration}
-          disabled={processingDuration || !videoUrl}
-          style={{
-            width: '100%',
-            padding: '14px',
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#ffffff',
-            backgroundColor: processingDuration || !videoUrl ? '#9e9e9e' : '#ff9800',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: processingDuration || !videoUrl ? 'not-allowed' : 'pointer',
-            transition: 'background-color 0.2s',
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-          }}
-          onMouseEnter={(e) => {
-            if (!processingDuration && videoUrl) e.currentTarget.style.backgroundColor = '#f57c00';
-          }}
-          onMouseLeave={(e) => {
-            if (!processingDuration && videoUrl) e.currentTarget.style.backgroundColor = '#ff9800';
-          }}
-        >
-          {processingDuration ? '⏱️ Processing...' : '⏱️ Process'}
-        </button>
-
-        {!videoUrl && (
-          <p style={{
-            fontSize: '14px',
-            color: '#666',
-            fontStyle: 'italic',
-            marginTop: '12px',
-            marginBottom: '0'
-          }}>
-            Process an Instagram link above to enable duration extraction
-          </p>
-        )}
-      </div>
+        <AudioLengthSection />
 
       {/* Audio Transcription Section */}
       <div style={{

@@ -30,6 +30,18 @@ export const useInstagramWebhookDataStore = create<InstagramWebhookDataState>((s
   }),
 }));
 
+interface VideoDurationState {
+  videoDuration: number | null;
+  setVideoDuration: (duration: number | null) => void;
+  reset: () => void;
+}
+
+export const useVideoDurationStore = create<VideoDurationState>((set) => ({
+  videoDuration: null,
+  setVideoDuration: (duration) => set({ videoDuration: duration }),
+  reset: () => set({ videoDuration: null }),
+}));
+
 interface FinalResult {
   videoUrl?: string;
   title?: string;

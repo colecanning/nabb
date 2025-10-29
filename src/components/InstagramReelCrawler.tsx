@@ -13,7 +13,7 @@ export default function InstagramReelCrawler() {
   
   // Get state and actions from Zustand store
   const { videoUrl, titleText, descriptionText, setVideoUrl, setTitleText, setDescriptionText, setInstagramData } = useInstagramWebhookDataStore();
-  const { finalResult, updateFinalResult } = useFinalResultStore();
+  const { updateFinalResult } = useFinalResultStore();
 
   const handleProcess = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +33,6 @@ export default function InstagramReelCrawler() {
           description: data.description,
         });
         
-        // Notify parent component (for backward compatibility)
         updateFinalResult({
           videoUrl: data.videoUrl || undefined,
           title: data.title || undefined,
