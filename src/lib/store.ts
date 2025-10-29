@@ -1,5 +1,15 @@
 import { create } from 'zustand';
 
+export interface SearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  position: number;
+  duration?: string | null;
+  thumbnail?: string | null;
+  raw?: any;
+}
+
 interface InstagramWebhookDataState {
   videoUrl: string;
   titleText: string;
@@ -42,6 +52,22 @@ export const useVideoDurationStore = create<VideoDurationState>((set) => ({
   reset: () => set({ videoDuration: null }),
 }));
 
+interface TranscriptionState {
+  transcription: string;
+  transcribing: boolean;
+  setTranscription: (transcription: string) => void;
+  setTranscribing: (transcribing: boolean) => void;
+  reset: () => void;
+}
+
+export const useTranscriptionStore = create<TranscriptionState>((set) => ({
+  transcription: '',
+  transcribing: false,
+  setTranscription: (transcription) => set({ transcription }),
+  setTranscribing: (transcribing) => set({ transcribing }),
+  reset: () => set({ transcription: '', transcribing: false }),
+}));
+
 interface FinalResult {
   videoUrl?: string;
   title?: string;
@@ -66,5 +92,21 @@ export const useFinalResultStore = create<FinalResultState>((set) => ({
     finalResult: { ...state.finalResult, ...updates },
   })),
   resetFinalResult: () => set({ finalResult: {} }),
+}));
+
+interface SearchResultsState {
+  searchResults: SearchResult[] | null;
+  searching: boolean;
+  setSearchResults: (results: SearchResult[] | null) => void;
+  setSearching: (searching: boolean) => void;
+  reset: () => void;
+}
+
+export const useSearchResultsStore = create<SearchResultsState>((set) => ({
+  searchResults: null,
+  searching: false,
+  setSearchResults: (results) => set({ searchResults: results }),
+  setSearching: (searching) => set({ searching }),
+  reset: () => set({ searchResults: null, searching: false }),
 }));
 
