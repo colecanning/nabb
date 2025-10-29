@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
     // searchUrl.searchParams.append('engine', 'duckduckgo');
     searchUrl.searchParams.append('engine', 'google');
     searchUrl.searchParams.append('q', instagramQuery);
+    searchUrl.searchParams.append('tbm', 'vid'); // Limit to video results only
     searchUrl.searchParams.append('api_key', serpApiKey);
     
     // Add timeout to prevent hanging
@@ -77,27 +78,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract organic results (top 5)
-    const organicResults = data.organic_results || [];
+    // Extract results - for video searches, SerpAPI returns video_results instead of organic_results
+    const organicResults = data.video_results || data.organic_results || [];
     
     // Log first result structure for debugging
     if (organicResults.length > 0) {
       console.log('Sample result structure:', JSON.stringify(organicResults[0], null, 2));
+      console.log('Available text fields:', {
+        title: organicResults[0].title?.substring(0, 50),
+        snippet: organicResults[0].snippet?.substring(0, 50),
+        description: organicResults[0].description?.substring(0, 50),
+        channelDescription: organicResults[0].channel?.description?.substring(0, 50),
+      });
+    } else {
+      console.log('No results found. Response keys:', Object.keys(data));
     }
     
-    const results = organicResults.slice(0, 5).map((result: any, index: number) => ({
-      title: result.title || 'No title',
-      url: result.link || '',
-      snippet: result.snippet || 'No description available',
-      position: result.position || index + 1,
-      // Try to extract video duration from various possible fields
-      duration: result.rich_snippet?.extensions?.duration || 
-                result.video?.duration || 
-                result.duration || 
-                null,
-      thumbnail: result.thumbnail || null,
-      raw: result // Include all raw data from SerpAPI
-    }));
+    const results = organicResults.slice(0, 5).map((result: any, index: number) => {
+      // Try to get the most complete description available
+      // Priority: channel description > snippet > description > title
+      const snippet = result.channel?.description || 
+                      result.snippet || 
+                      result.description || 
+                      result.title || 
+                      'No description available';
+      
+      return {
+        title: result.title || 'No title',
+        url: result.link || '',
+        snippet: snippet,
+        position: result.position || index + 1,
+        // Try to extract video duration from various possible fields
+        duration: result.rich_snippet?.extensions?.duration || 
+                  result.video?.duration || 
+                  result.duration || 
+                  null,
+        thumbnail: result.thumbnail || null,
+        raw: result // Include all raw data from SerpAPI
+      };
+    });
 
     if (results.length === 0) {
       return NextResponse.json(

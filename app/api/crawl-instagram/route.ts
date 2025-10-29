@@ -71,9 +71,43 @@ export async function POST(request: NextRequest) {
     }
     
     let description = null;
+    let title = null;
+    
+    // Try multiple patterns to find title
+    const titlePatterns = [
+      // Standard meta title
+      /<meta\s+name=["']title["']\s+content=["']([^"']+)["']/i,
+      /<meta\s+content=["']([^"']+)["']\s+name=["']title["']/i,
+      // Open Graph title
+      /<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i,
+      /<meta\s+content=["']([^"']+)["']\s+property=["']og:title["']/i,
+      // Twitter title
+      /<meta\s+name=["']twitter:title["']\s+content=["']([^"']+)["']/i,
+      /<meta\s+content=["']([^"']+)["']\s+name=["']twitter:title["']/i,
+      // HTML title tag as fallback
+      /<title>([^<]+)<\/title>/i,
+    ];
+    
+    for (const pattern of titlePatterns) {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        title = match[1];
+        console.log('Found title with pattern:', pattern.source);
+        break;
+      }
+    }
+    
+    // Extract content between &quot; entities if present
+    if (title && title.includes('&quot;')) {
+      const quotedContentMatch = title.match(/&quot;([^&]+)&quot;/);
+      if (quotedContentMatch && quotedContentMatch[1]) {
+        title = quotedContentMatch[1].trim();
+        console.log('Extracted quoted title content:', title);
+      }
+    }
     
     // Try multiple patterns to find description
-    const patterns = [
+    const descriptionPatterns = [
       // Standard meta description
       /<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i,
       /<meta\s+content=["']([^"']+)["']\s+name=["']description["']/i,
@@ -87,7 +121,7 @@ export async function POST(request: NextRequest) {
       /<meta\s+property=["'][^"']*description[^"']*["']\s+content=["']([^"']+)["']/i,
     ];
     
-    for (const pattern of patterns) {
+    for (const pattern of descriptionPatterns) {
       const match = html.match(pattern);
       if (match && match[1]) {
         description = match[1];
@@ -164,6 +198,7 @@ export async function POST(request: NextRequest) {
             htmlLength: html.length,
             headSnippet: headContent,
             hasMetaTags: html.includes('<meta'),
+            title: title,
             videoUrl: videoUrl,
             hasScriptTags: html.includes('<script'),
           }
@@ -178,46 +213,11 @@ export async function POST(request: NextRequest) {
       console.log('Sample of HTML:', html.substring(0, 2000));
     }
 
-    // Download the video if URL was found
-    let downloadedVideoPath = null;
-    
-    if (videoUrl) {
-      try {
-        console.log('Downloading video from:', videoUrl);
-        
-        // Create downloads directory if it doesn't exist
-        const downloadsDir = join(process.cwd(), 'public', 'downloads');
-        if (!existsSync(downloadsDir)) {
-          await mkdir(downloadsDir, { recursive: true });
-        }
-        
-        // Generate filename from URL or timestamp
-        const timestamp = Date.now();
-        const reelId = url.split('/reel/')[1]?.split('/')[0] || timestamp;
-        const filename = `reel_${reelId}_${timestamp}.mp4`;
-        const filepath = join(downloadsDir, filename);
-        
-        // Download the video
-        const videoResponse = await fetch(videoUrl);
-        if (videoResponse.ok) {
-          const buffer = await videoResponse.arrayBuffer();
-          await writeFile(filepath, Buffer.from(buffer));
-          downloadedVideoPath = `/downloads/${filename}`;
-          console.log('Video downloaded to:', downloadedVideoPath);
-        } else {
-          console.error('Failed to download video:', videoResponse.status);
-        }
-      } catch (downloadError) {
-        console.error('Error downloading video:', downloadError);
-        // Continue even if download fails
-      }
-    }
-
     return NextResponse.json({
       success: true,
+      title: title,
       description: description,
       videoUrl: videoUrl,
-      downloadedVideoPath: downloadedVideoPath,
       url: url,
       debug: {
         htmlLength: html.length,
