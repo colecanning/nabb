@@ -24,15 +24,19 @@ export async function POST(request: NextRequest) {
 
     const page = await browser.newPage();
     
+    // Set default timeout for all page operations (important for Vercel cold starts)
+    page.setDefaultTimeout(60000); // 60 seconds
+    page.setDefaultNavigationTimeout(60000); // 60 seconds for navigation
+    
     // Set viewport and user agent
     await page.setViewport({ width: 1280, height: 800 });
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    // Navigate to the page with timeout
+    // Navigate to the page with increased timeout for Vercel
     try {
       await page.goto(url, {
         waitUntil: 'networkidle2',
-        timeout: 15000,
+        timeout: 30000, // Increased from 15s to 30s for cold starts
       });
     } catch (error) {
       console.error('Navigation error:', error);

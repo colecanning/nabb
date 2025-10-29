@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
 
     const page = await browser.newPage();
     
+    // Set default timeout for all page operations (important for Vercel cold starts)
+    page.setDefaultTimeout(60000); // 60 seconds
+    
     // Set viewport
     await page.setViewport({ width: 1280, height: 800 });
 

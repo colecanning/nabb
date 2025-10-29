@@ -42,6 +42,9 @@ export async function GET(request: NextRequest) {
         ...launchOptions,
         args: chromium.args,
         executablePath: await chromium.executablePath(),
+        // Increase timeout for browser launch (critical for Vercel cold starts)
+        timeout: 60000,
+        protocolTimeout: 60000,
       };
     } else {
       puppeteer = await import("puppeteer");
@@ -49,6 +52,11 @@ export async function GET(request: NextRequest) {
 
     browser = await puppeteer.launch(launchOptions);
     const page = await browser.newPage();
+    
+    // Set default timeout for all page operations
+    page.setDefaultTimeout(60000);
+    page.setDefaultNavigationTimeout(60000);
+    
     await page.goto(parsedUrl.toString(), { waitUntil: "networkidle2" });
     const screenshot = await page.screenshot({ type: "png" });
     return new NextResponse(screenshot, {

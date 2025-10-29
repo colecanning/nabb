@@ -8,6 +8,7 @@ export async function getBrowser() {
 
   if (isProduction) {
     // Use chromium for Vercel with version 119.0.2 (most stable for Lambda)
+    // IMPORTANT: Increase timeout for chromium binary extraction on cold starts
     const executablePath = await chromium.executablePath();
     
     return await puppeteer.launch({
@@ -15,6 +16,10 @@ export async function getBrowser() {
       defaultViewport: chromium.defaultViewport,
       executablePath,
       headless: chromium.headless,
+      // Increase timeout to 60 seconds for browser launch (default is 30s)
+      // This is critical for Vercel cold starts when chromium needs to be extracted
+      timeout: 60000,
+      protocolTimeout: 60000,
     });
   } else {
     // Use local Chromium for development
