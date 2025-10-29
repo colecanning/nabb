@@ -8,6 +8,10 @@ export async function getBrowser() {
 
   if (isProduction) {
     // Use chromium for Vercel with version 126.0.0 (stable version)
+    // Set headless shell mode to avoid missing library issues
+    chromium.setHeadlessMode = true;
+    chromium.setGraphicsMode = false;
+    
     const executablePath = await chromium.executablePath();
     
     return await puppeteer.launch({
@@ -26,7 +30,7 @@ export async function getBrowser() {
       ],
       defaultViewport: chromium.defaultViewport,
       executablePath,
-      headless: chromium.headless,
+      headless: true,
     });
   } else {
     // Use local Chromium for development
