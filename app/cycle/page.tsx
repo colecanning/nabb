@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Header from '../components/Header';
 
 export default function CyclePage() {
   // const [url, setUrl] = useState('https://www.instagram.com/reel/DCKH6RPSKDe/');
@@ -145,13 +146,15 @@ export default function CyclePage() {
   };
 
   return (
-    <main style={{ 
-      padding: '50px', 
-      fontFamily: 'system-ui, sans-serif',
-      maxWidth: '800px',
-      margin: '0 auto'
-    }}>
-      <h1 style={{ fontSize: '36px', marginBottom: '20px' }}>Instagram Reel Crawler</h1>
+    <>
+      <Header />
+      <main style={{ 
+        padding: '50px', 
+        fontFamily: 'system-ui, sans-serif',
+        maxWidth: '800px',
+        margin: '0 auto'
+      }}>
+        <h1 style={{ fontSize: '36px', marginBottom: '20px' }}>Instagram Reel Crawler</h1>
       
       <div style={{
         backgroundColor: '#ffffff',
@@ -863,6 +866,7 @@ export default function CyclePage() {
         {/* Content will be added here */}
       </div>
     </main>
+    </>
   );
 }
 

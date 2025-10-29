@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Header from './components/Header';
 
 interface Message {
   id: string;
@@ -287,8 +288,10 @@ export default function Home() {
   };
 
   return (
-    <main style={{ padding: '50px', fontFamily: 'system-ui, sans-serif', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '36px', marginBottom: '20px' }}>Instagram Message Sender</h1>
+    <>
+      <Header />
+      <main style={{ padding: '50px', fontFamily: 'system-ui, sans-serif', maxWidth: '800px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '36px', marginBottom: '20px' }}>Instagram Message Sender</h1>
       
       <p style={{ fontSize: '18px', lineHeight: '1.6', marginBottom: '30px' }}>
         This application sends messages to Instagram users via the Instagram Graph API.
@@ -1817,7 +1820,8 @@ export default function Home() {
       <div style={{ marginTop: '40px', fontSize: '14px', color: '#666' }}>
         <p>See <code>README.md</code> for detailed documentation.</p>
       </div>
-    </main>
+      </main>
+    </>
   );
 }
 
