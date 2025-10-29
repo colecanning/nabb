@@ -7,30 +7,14 @@ export async function getBrowser() {
   const isProduction = process.env.VERCEL === '1';
 
   if (isProduction) {
-    // Use chromium for Vercel with version 126.0.0 (stable version)
-    // Set headless shell mode to avoid missing library issues
-    chromium.setHeadlessMode = true;
-    chromium.setGraphicsMode = false;
-    
+    // Use chromium for Vercel with version 119.0.2 (most stable for Lambda)
     const executablePath = await chromium.executablePath();
     
     return await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        '--hide-scrollbars',
-        '--disable-web-security',
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ],
+      args: chromium.args,
       defaultViewport: chromium.defaultViewport,
       executablePath,
-      headless: true,
+      headless: chromium.headless,
     });
   } else {
     // Use local Chromium for development
