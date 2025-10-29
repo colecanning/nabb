@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+import { getBrowser } from '@/lib/chromium';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
@@ -19,16 +19,8 @@ export async function POST(request: NextRequest) {
 
     console.log('Crawling Instagram URL with Puppeteer:', url);
 
-    // Launch headless browser
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ],
-    });
+    // Launch headless browser (works on both local and Vercel)
+    browser = await getBrowser();
 
     const page = await browser.newPage();
     
