@@ -1,3 +1,4 @@
+import { InstagramCrawlResult } from './backend/instagram-crawler';
 import { SearchResult } from './store';
 
 export interface CrawlInstagramResult {
@@ -15,7 +16,7 @@ export interface SearchInstagramReelsResult {
   error?: string;
 }
 
-export async function crawlInstagram(url: string): Promise<CrawlInstagramResult> {
+export async function crawlInstagram(url: string): Promise<InstagramCrawlResult> {
   const res = await fetch('/api/crawl-instagram', {
     method: 'POST',
     headers: {

@@ -23,7 +23,12 @@ export default function ScrapeMatchSection() {
     // Update final result with matched Instagram URL if successful
     if (data.success) {
       updateFinalResult({
-        matchedInstagramUrl: matchedResult.url
+        result: {
+          bestMatch: {
+            videoUrl: data.videoUrl || null,
+            title: data.title || null,
+          }
+        }
       });
     }
     

@@ -123,9 +123,11 @@ export interface FindMatchResult {
   error?: string;
 }
 
+const DURATION_SIMILARITY = 1;
+
 export async function findBestMatch(
   searchResults: SearchResult[],
-  titleText: string,
+  // titleText: string,
   videoDuration: number | null
 ): Promise<FindMatchResult> {
   try {
@@ -138,7 +140,7 @@ export async function findBestMatch(
 
     console.log('=== Starting Match Process ===');
     console.log('Our video duration:', videoDuration);
-    console.log('Our title:', titleText);
+    // console.log('Our title:', titleText);
     console.log('Number of search results:', searchResults.length);
 
     const ourDurationSeconds = videoDuration;
@@ -153,7 +155,7 @@ export async function findBestMatch(
       let durationScore = 0;
       let titleScore = 0;
 
-      // Duration matching (weight: 0.6)
+      // Duration matching (weight: DURATION_SIMILARITY)
       if (ourDurationSeconds && result.duration) {
         const resultDurationSeconds = parseDurationToSeconds(result.duration);
         console.log('Duration comparison:', {
@@ -165,23 +167,23 @@ export async function findBestMatch(
           const durationDiff = Math.abs(ourDurationSeconds - resultDurationSeconds);
           const durationSimilarity = Math.max(0, 1 - (durationDiff / Math.max(ourDurationSeconds, resultDurationSeconds)));
           durationScore = durationSimilarity;
-          score += durationSimilarity * 0.6;
-          console.log('Duration score:', durationSimilarity.toFixed(3), '(weighted:', (durationSimilarity * 0.6).toFixed(3) + ')');
+          score += durationSimilarity * DURATION_SIMILARITY;
+          console.log('Duration score:', durationSimilarity.toFixed(3), '(weighted:', (durationSimilarity * DURATION_SIMILARITY).toFixed(3) + ')');
         }
       } else {
         console.log('Duration matching skipped:', { ourDuration: ourDurationSeconds, theirDuration: result.duration });
       }
 
-      // Title matching (weight: 0.4) - using snippet from SERP API
-      if (titleText && result.snippet) {
-        console.log('\nTitle matching (using snippet):');
-        const titleSimilarity = calculateStringSimilarity(titleText, result.snippet);
-        titleScore = titleSimilarity;
-        score += titleSimilarity * 0.4;
-        console.log('Title score:', titleSimilarity.toFixed(3), '(weighted:', (titleSimilarity * 0.4).toFixed(3) + ')');
-      } else {
-        console.log('Title matching skipped:', { ourTitle: titleText, theirSnippet: result.snippet });
-      }
+      // // Title matching (weight: 0.4) - using snippet from SERP API
+      // if (titleText && result.snippet) {
+      //   console.log('\nTitle matching (using snippet):');
+      //   const titleSimilarity = calculateStringSimilarity(titleText, result.snippet);
+      //   titleScore = titleSimilarity;
+      //   score += titleSimilarity * 0.4;
+      //   console.log('Title score:', titleSimilarity.toFixed(3), '(weighted:', (titleSimilarity * 0.4).toFixed(3) + ')');
+      // } else {
+      //   console.log('Title matching skipped:', { ourTitle: titleText, theirSnippet: result.snippet });
+      // }
 
       console.log('Total score for this result:', score.toFixed(3));
 

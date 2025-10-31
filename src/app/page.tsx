@@ -1,7 +1,7 @@
 'use client';
 
+import Header from '@/components/Header';
 import { useState, useEffect } from 'react';
-import Header from '../src/components/Header';
 
 interface Message {
   id: string;

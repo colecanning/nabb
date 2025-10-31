@@ -25,7 +25,9 @@ export default function AudioTranscriptionSection() {
         
         // Update final result with transcription
         updateFinalResult({
-          audioTranscription: transcription,
+          result: {
+            videoTranscription: transcription,
+          }
         });
       } else {
         alert('Failed to get transcription: Unknown error');

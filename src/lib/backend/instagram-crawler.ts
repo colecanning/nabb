@@ -5,11 +5,12 @@ import { existsSync } from 'fs';
 
 export interface InstagramCrawlResult {
   success: boolean;
-  title: string | null;
-  description: string | null;
-  videoUrl: string | null;
-  url: string;
-  debug: {
+  error?: string;
+  title?: string | null;
+  description?: string | null;
+  videoUrl?: string | null;
+  url?: string;
+  debug?: {
     htmlLength: number;
     foundVideoUrl: boolean;
   };

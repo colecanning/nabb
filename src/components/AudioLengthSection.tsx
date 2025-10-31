@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useInstagramWebhookDataStore, useVideoDurationStore } from '@/lib/store';
+import { useInstagramWebhookDataStore, useVideoDurationStore, useFinalResultStore } from '@/lib/store';
 import { getVideoDuration } from '@/lib/api';
 
 export default function AudioLengthSection() {
   const { videoUrl } = useInstagramWebhookDataStore();
   const { videoDuration, setVideoDuration } = useVideoDurationStore();
+  const { updateFinalResult } = useFinalResultStore();
   const [processingDuration, setProcessingDuration] = useState(false);
 
   const handleGetDuration = async () => {
@@ -20,9 +21,18 @@ export default function AudioLengthSection() {
 
     try {
       const duration = await getVideoDuration(videoUrl);
+      console.log('duration', duration);
       
       if (duration !== null) {
-        setVideoDuration(Math.round(duration));
+        const roundedDuration = Math.round(duration);
+        setVideoDuration(roundedDuration);
+        
+        // Update final result with video duration
+        updateFinalResult({
+          result: {
+            videoDuration: roundedDuration,
+          }
+        });
       } else {
         alert('Failed to get duration: Unknown error');
       }

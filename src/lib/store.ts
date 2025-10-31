@@ -1,3 +1,4 @@
+import { WebhookOutput } from '@/app/api/test-webhook/route';
 import { create } from 'zustand';
 
 export interface SearchResult {
@@ -17,7 +18,7 @@ interface InstagramWebhookDataState {
   setVideoUrl: (url: string) => void;
   setTitleText: (title: string) => void;
   setDescriptionText: (description: string) => void;
-  setInstagramData: (data: { videoUrl?: string; title?: string; description?: string }) => void;
+  setInstagramData: (data: { videoUrl?: string | null; title?: string | null; description?: string | null }) => void;
   reset: () => void;
 }
 
@@ -53,9 +54,9 @@ export const useVideoDurationStore = create<VideoDurationState>((set) => ({
 }));
 
 interface TranscriptionState {
-  transcription: string;
+  transcription: string | null;
   transcribing: boolean;
-  setTranscription: (transcription: string) => void;
+  setTranscription: (transcription: string | null) => void;
   setTranscribing: (transcribing: boolean) => void;
   reset: () => void;
 }
@@ -68,20 +69,35 @@ export const useTranscriptionStore = create<TranscriptionState>((set) => ({
   reset: () => set({ transcription: '', transcribing: false }),
 }));
 
-interface FinalResult {
-  videoUrl?: string;
-  title?: string;
-  description?: string;
-  audioTranscription?: string;
-  matchedInstagramUrl?: string;
-}
+// interface FinalResult {
+//   videoUrl?: string;
+//   title?: string;
+//   description?: string;
+//   audioTranscription?: string;
+//   matchedInstagramUrl?: string;
+// }
 
 interface FinalResultState {
-  finalResult: FinalResult;
-  setFinalResult: (result: FinalResult | ((prev: FinalResult) => FinalResult)) => void;
-  updateFinalResult: (updates: Partial<FinalResult>) => void;
+  finalResult: WebhookOutput;
+  setFinalResult: (result: WebhookOutput | ((prev: WebhookOutput) => WebhookOutput)) => void;
+  updateFinalResult: (updates: Partial<WebhookOutput>) => void;
   resetFinalResult: () => void;
 }
+
+// Deep merge utility for nested objects
+const deepMerge = (target: any, source: any): any => {
+  const result = { ...target };
+  
+  for (const key in source) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      result[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  
+  return result;
+};
 
 export const useFinalResultStore = create<FinalResultState>((set) => ({
   finalResult: {},
@@ -89,7 +105,7 @@ export const useFinalResultStore = create<FinalResultState>((set) => ({
     finalResult: typeof result === 'function' ? result(state.finalResult) : result,
   })),
   updateFinalResult: (updates) => set((state) => ({
-    finalResult: { ...state.finalResult, ...updates },
+    finalResult: deepMerge(state.finalResult, updates),
   })),
   resetFinalResult: () => set({ finalResult: {} }),
 }));

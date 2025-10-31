@@ -2,7 +2,7 @@ import { getBrowser } from '@/lib/backend/chromium';
 
 export interface VideoDurationResult {
   success: boolean;
-  duration: number;
+  duration: number | null;
   videoUrl: string;
 }
 
