@@ -79,8 +79,8 @@ const processWebhook = async (webhookData: WebhookData) => {
       videoDuration: videoDurationResult?.duration,
       videoTranscription: audioTranscriptionResult?.transcription,
       bestMatch: bestMatchInstagramCrawlResult ? {
-        title: bestMatchInstagramCrawlResult?.title,
-        videoUrl: bestMatchInstagramCrawlResult?.videoUrl,
+        title: bestMatchInstagramCrawlResult?.title || null,
+        videoUrl: bestMatchInstagramCrawlResult?.videoUrl || null,
       } : null,
     },
     debug: {
@@ -112,8 +112,8 @@ export async function POST(request: NextRequest) {
     }
 
     const webhookData = {
-      title: instagramCrawlResult.title,
-      videoUrl: instagramCrawlResult.videoUrl
+      title: instagramCrawlResult.title || null,
+      videoUrl: instagramCrawlResult.videoUrl || null
     }
 
     const output = await processWebhook(webhookData)

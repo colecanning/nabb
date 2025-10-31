@@ -65,7 +65,7 @@ export default function AudioTranscriptionSection() {
         </label>
         <textarea
           id="transcription"
-          value={transcription}
+          value={transcription || ''}
           onChange={(e) => setTranscription(e.target.value)}
           placeholder="Click 'Get Audio Transcript' to transcribe the video"
           rows={6}

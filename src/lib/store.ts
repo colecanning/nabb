@@ -77,10 +77,15 @@ export const useTranscriptionStore = create<TranscriptionState>((set) => ({
 //   matchedInstagramUrl?: string;
 // }
 
+// Deep partial type helper for nested objects
+type DeepPartial<T> = T extends object ? {
+  [P in keyof T]?: DeepPartial<T[P]>;
+} : T;
+
 interface FinalResultState {
   finalResult: WebhookOutput;
   setFinalResult: (result: WebhookOutput | ((prev: WebhookOutput) => WebhookOutput)) => void;
-  updateFinalResult: (updates: Partial<WebhookOutput>) => void;
+  updateFinalResult: (updates: DeepPartial<WebhookOutput>) => void;
   resetFinalResult: () => void;
 }
 
