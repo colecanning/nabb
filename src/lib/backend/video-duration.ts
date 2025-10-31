@@ -57,7 +57,7 @@ export async function getVideoDuration(videoUrl: string): Promise<VideoDurationR
         
         video.src = url;
       });
-    }, videoUrl) as Promise<number | null>;
+    }, videoUrl) as number | null;
     
     if (videoDuration) {
       console.log('✅ Video duration:', videoDuration, 'seconds');

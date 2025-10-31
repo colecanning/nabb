@@ -155,9 +155,9 @@ export const useMatchResultsStore = create<MatchResultsState>((set) => ({
 
 export interface ScrapedMatchData {
   success?: boolean;
-  title?: string;
-  description?: string;
-  videoUrl?: string;
+  title?: string | null;
+  description?: string | null;
+  videoUrl?: string | null;
   error?: string;
   debug?: any;
 }
