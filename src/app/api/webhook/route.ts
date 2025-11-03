@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendInstagramMessage } from '@/lib/backend/instagram-messaging';
-import { processWebhook, WebhookData } from '@/app/api/test-webhook/route';
+import { WebhookData } from '@/app/api/test-webhook/route';
 
 /**
  * Webhook endpoint for Instagram API
@@ -73,85 +72,49 @@ interface InstagramWebhookPayload {
 type WebhookPayload = InstagramWebhookPayload;
 
 /**
- * Processes the webhook in the background after responding to Instagram
+ * Triggers background processing by making a request to the process-reel endpoint
+ * @param request - The Next.js request object for getting the base URL
  * @param senderId - The Instagram user ID
  * @param webhookData - The webhook data containing title and videoUrl
  * @param replyToMessageId - Optional message ID to reply to (for threading)
  */
-async function processReelInBackground(
-  senderId: string,
-  webhookData: WebhookData,
-  replyToMessageId?: string
-) {
-  try {
-    // Send initial "Thinking..." message
-    const initialResult = await sendInstagramMessage({
-      recipient_id: senderId,
-      message: "Thinking...",
-      reply_to: replyToMessageId,
-    });
-
-    if (!initialResult.success) {
-      console.error('Failed to send initial reply:', initialResult.error, initialResult.errorDetails);
-      // Continue processing anyway
-    } else {
-      console.log('Successfully sent initial reply to', senderId);
-    }
-
-    // Process the webhook
-    console.log('Processing webhook with data:', webhookData);
-    const output = await processWebhook(webhookData, senderId);
-    console.log('Webhook processed successfully:', output.saveId);
-    
-    // Send completion message with link to results
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000';
-    const savePageUrl = `${baseUrl}/saves/${output.saveId}`;
-    
-    const completionResult = await sendInstagramMessage({
-      recipient_id: senderId,
-      message: `Done! View your results here: ${savePageUrl}`,
-      reply_to: replyToMessageId,
-    });
-    
-    if (!completionResult.success) {
-      console.error('Failed to send completion message:', completionResult.error);
-    } else {
-      console.log('Successfully sent completion message to', senderId);
-    }
-  } catch (error) {
-    console.error('Error in processReelInBackground:', error);
-    
-    // Try to send an error message to the user
-    try {
-      await sendInstagramMessage({
-        recipient_id: senderId,
-        message: 'Sorry, there was an error processing your reel. Please try again.',
-        reply_to: replyToMessageId,
-      });
-    } catch (msgError) {
-      console.error('Failed to send error message:', msgError);
-    }
-  }
-}
-
-/**
- * Kicks off background processing for a reel without blocking the webhook response
- * @param senderId - The Instagram user ID to send the message to
- * @param webhookData - The webhook data containing title and videoUrl
- * @param replyToMessageId - Optional message ID to reply to (for threading)
- */
 function handleReelAutoReply(
+  request: NextRequest,
   senderId: string, 
   webhookData: WebhookData,
   replyToMessageId?: string
 ) {
-  // Start background processing without awaiting
-  // This allows the webhook response to return immediately to Instagram
-  processReelInBackground(senderId, webhookData, replyToMessageId).catch(error => {
-    console.error('Background processing failed:', error);
+  // Get internal API secret for authentication
+  const internalSecret = process.env.INTERNAL_API_SECRET;
+  
+  if (!internalSecret) {
+    console.error('INTERNAL_API_SECRET not configured - cannot trigger background processing');
+    return;
+  }
+
+  // Construct the URL for the process-reel endpoint
+  const baseUrl = request.nextUrl.origin || `${request.headers.get('x-forwarded-proto') || 'https'}://${request.headers.get('host')}`;
+  const processReelUrl = new URL('/api/process-reel', baseUrl).toString();
+  
+  // Make a fire-and-forget request to the process-reel endpoint
+  // This ensures processing happens in a separate execution context
+  fetch(processReelUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-secret': internalSecret,
+    },
+    body: JSON.stringify({
+      senderId,
+      webhookData,
+      replyToMessageId,
+    }),
+  }).catch(error => {
+    // Log but don't throw - this is intentionally fire-and-forget
+    console.error('Failed to trigger background processing:', error);
   });
+  
+  console.log('Background processing triggered for sender:', senderId);
 }
 
 // GET handler for webhook verification
@@ -260,8 +223,8 @@ export async function POST(request: NextRequest) {
                 videoUrl: reelAttachment.payload.url || null,
               };
               
-              // Send "Thinking..." message as auto-reply and process webhook
-              await handleReelAutoReply(senderId, webhookData);
+              // Trigger background processing
+              handleReelAutoReply(request, senderId, webhookData);
             }
 
             // TODO: Add your custom logic here to handle incoming messages
@@ -309,8 +272,8 @@ export async function POST(request: NextRequest) {
                   videoUrl: reelAttachment.payload.url || null,
                 };
                 
-                // Send "Thinking..." message as auto-reply and process webhook
-                await handleReelAutoReply(senderId, webhookData, messageId);
+                // Trigger background processing
+                handleReelAutoReply(request, senderId, webhookData, messageId);
               }
 
               // TODO: Add your custom logic here to handle incoming messages
