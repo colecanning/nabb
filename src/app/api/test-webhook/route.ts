@@ -7,8 +7,10 @@ import { searchInstagramReels } from '@/lib/api';
 import { findBestMatch, FindMatchResult } from '@/lib/matching';
 import { Entity, MatchedResult } from '@/lib/store';
 import { extractEntities, convertWebhookOutputToLLMInput, EntityExtractionResult, LLMInput } from '@/lib/backend/entity-extraction';
+import { supabase } from '@/lib/backend/supabase';
 
 export interface WebhookOutput {
+  saveId?: string;
   result?: {
     title: string | null;
     videoUrl: string | null;
@@ -33,6 +35,7 @@ export interface TestWebhookRespose {
   success: boolean;
   result: WebhookOutput;
   instagramCrawlResult: InstagramCrawlResult;
+  saveId: string;
 }
 
 interface WebhookData {
@@ -40,7 +43,25 @@ interface WebhookData {
   videoUrl: string | null;
 }
 
-const processWebhook = async (webhookData: WebhookData) => {
+const processWebhook = async (webhookData: WebhookData, instagramUserId?: string | null) => {
+  // Save initial input to Supabase
+  const { data: savedRecord, error: saveError } = await supabase
+    .from('saves')
+    .insert({
+      input: webhookData as any,
+      instagram_user_id: instagramUserId || null,
+      output: null,
+    })
+    .select()
+    .single();
+
+  if (saveError) {
+    console.error('Error saving to Supabase:', saveError);
+    throw new Error(`Failed to save to database: ${saveError.message}`);
+  }
+
+  console.log('Saved to Supabase with ID:', savedRecord.id);
+
   // If there's a video url, get the duration and the transcribe
   let videoDurationResult: VideoDurationResult | null = null;
   let audioTranscriptionResult: TranscriptionResult | null = null;
@@ -95,6 +116,7 @@ const processWebhook = async (webhookData: WebhookData) => {
 
   // Now we've got everything. If we have enough, return it. Otherwise, return an error.
   const output: WebhookOutput = {
+    saveId: savedRecord.id,
     result: {
       title: webhookData.title,
       videoUrl: webhookData.videoUrl,
@@ -114,6 +136,21 @@ const processWebhook = async (webhookData: WebhookData) => {
       entityExtractionResult
     }
   };
+  
+  // Update Supabase record with output
+  const { error: updateError } = await supabase
+    .from('saves')
+    .update({
+      output: output as any,
+    })
+    .eq('id', savedRecord.id);
+
+  if (updateError) {
+    console.error('Error updating Supabase record:', updateError);
+    // Don't throw error here, we still want to return the output
+  } else {
+    console.log('Updated Supabase record with output:', savedRecord.id);
+  }
   
   return output;
 }
@@ -142,9 +179,17 @@ export async function POST(request: NextRequest) {
       videoUrl: instagramCrawlResult.videoUrl || null,
     }
 
-    const output = await processWebhook(webhookData)
+    // Extract instagram user ID from the author field if available
+    const instagramUserId = instagramCrawlResult.author || null;
 
-    return NextResponse.json({ success: true, result: output, instagramCrawlResult } as TestWebhookRespose);
+    const output = await processWebhook(webhookData, instagramUserId)
+
+    return NextResponse.json({ 
+      success: true, 
+      result: output, 
+      instagramCrawlResult,
+      saveId: output.saveId 
+    } as TestWebhookRespose);
 
   } catch (error) {
     console.error('Instagram crawl error:', error);
