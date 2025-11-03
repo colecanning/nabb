@@ -73,37 +73,38 @@ interface InstagramWebhookPayload {
 type WebhookPayload = InstagramWebhookPayload;
 
 /**
- * Handles sending an automated Instagram reply when a reel is received and processes the webhook
- * @param senderId - The Instagram user ID to send the message to
+ * Processes the webhook in the background after responding to Instagram
+ * @param senderId - The Instagram user ID
  * @param webhookData - The webhook data containing title and videoUrl
  * @param replyToMessageId - Optional message ID to reply to (for threading)
  */
-async function handleReelAutoReply(
-  senderId: string, 
+async function processReelInBackground(
+  senderId: string,
   webhookData: WebhookData,
   replyToMessageId?: string
 ) {
   try {
-    const result = await sendInstagramMessage({
+    // Send initial "Thinking..." message
+    const initialResult = await sendInstagramMessage({
       recipient_id: senderId,
       message: "Thinking...",
       reply_to: replyToMessageId,
     });
 
-    if (!result.success) {
-      console.error('Failed to send reply:', result.error, result.errorDetails);
-      return;
+    if (!initialResult.success) {
+      console.error('Failed to send initial reply:', initialResult.error, initialResult.errorDetails);
+      // Continue processing anyway
+    } else {
+      console.log('Successfully sent initial reply to', senderId);
     }
-    
-    console.log('Successfully sent reply to', senderId);
 
-    // Process the webhook after sending the message
+    // Process the webhook
     console.log('Processing webhook with data:', webhookData);
     const output = await processWebhook(webhookData, senderId);
     console.log('Webhook processed successfully:', output.saveId);
     
     // Send completion message with link to results
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL 
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL 
       ? `https://${process.env.VERCEL_URL}` 
       : 'http://localhost:3000';
     const savePageUrl = `${baseUrl}/saves/${output.saveId}`;
@@ -116,10 +117,41 @@ async function handleReelAutoReply(
     
     if (!completionResult.success) {
       console.error('Failed to send completion message:', completionResult.error);
+    } else {
+      console.log('Successfully sent completion message to', senderId);
     }
   } catch (error) {
-    console.error('Error in handleReelAutoReply:', error);
+    console.error('Error in processReelInBackground:', error);
+    
+    // Try to send an error message to the user
+    try {
+      await sendInstagramMessage({
+        recipient_id: senderId,
+        message: 'Sorry, there was an error processing your reel. Please try again.',
+        reply_to: replyToMessageId,
+      });
+    } catch (msgError) {
+      console.error('Failed to send error message:', msgError);
+    }
   }
+}
+
+/**
+ * Kicks off background processing for a reel without blocking the webhook response
+ * @param senderId - The Instagram user ID to send the message to
+ * @param webhookData - The webhook data containing title and videoUrl
+ * @param replyToMessageId - Optional message ID to reply to (for threading)
+ */
+function handleReelAutoReply(
+  senderId: string, 
+  webhookData: WebhookData,
+  replyToMessageId?: string
+) {
+  // Start background processing without awaiting
+  // This allows the webhook response to return immediately to Instagram
+  processReelInBackground(senderId, webhookData, replyToMessageId).catch(error => {
+    console.error('Background processing failed:', error);
+  });
 }
 
 // GET handler for webhook verification
