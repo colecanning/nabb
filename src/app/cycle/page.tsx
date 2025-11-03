@@ -8,6 +8,7 @@ import FindInstagramReelSection from '@/components/FindInstagramReelSection';
 import FindMatchSection from '@/components/FindMatchSection';
 import ScrapeMatchSection from '@/components/ScrapeMatchSection';
 import EntityExtractionSection from '@/components/EntityExtractionSection';
+import ExtractEntityUrlsSection from '@/components/ExtractEntityUrlsSection';
 import { useFinalResultStore } from '@/lib/store';
 
 export default function CyclePage() {
@@ -75,6 +76,8 @@ export default function CyclePage() {
       </div>
 
       <EntityExtractionSection />
+
+      <ExtractEntityUrlsSection />
     </main>
     </>
   );

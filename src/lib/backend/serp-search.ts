@@ -1,3 +1,5 @@
+import { Entity } from './entity-extraction';
+
 export interface SerpSearchResult {
   title: string;
   url: string;
@@ -26,6 +28,86 @@ export interface SerpSearchError {
   success: false;
   error: string;
   details?: string;
+}
+
+/**
+ * Performs a general Google search using SerpAPI for an entity
+ * @param entity - The entity object to search for
+ * @returns Promise resolving to the entity with URLs populated
+ */
+export async function searchEntityWithSerp(entity: Entity): Promise<Entity> {
+  const serpApiKey = process.env.SERPAPI_API_KEY;
+  if (!serpApiKey) {
+    throw new Error('SerpAPI key not configured. Add SERPAPI_API_KEY to your .env.local file');
+  }
+
+  // Build search query from entity name and type
+  const searchQuery = `${entity.name} ${entity.type}`;
+  
+  console.log('Searching Google via SerpAPI for entity:', searchQuery);
+
+  // Use SerpAPI's Google search endpoint for general web search
+  const searchUrl = new URL('https://serpapi.com/search');
+  searchUrl.searchParams.append('engine', 'google');
+  searchUrl.searchParams.append('q', searchQuery);
+  searchUrl.searchParams.append('api_key', serpApiKey);
+  searchUrl.searchParams.append('num', '5'); // Request 5 results
+  
+  // Add timeout to prevent hanging
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+  
+  let response;
+  try {
+    response = await fetch(searchUrl.toString(), {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; SearchBot/1.0)',
+      }
+    });
+  } catch (fetchError: any) {
+    clearTimeout(timeoutId);
+    if (fetchError.name === 'AbortError') {
+      console.error('SerpAPI request timed out');
+      throw new Error('Search request timed out. Please try again.');
+    }
+    throw fetchError;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('SerpAPI error status:', response.status, errorText);
+    throw new Error(`SerpAPI error (${response.status}): ${errorText || 'Unknown error'}`);
+  }
+
+  const data = await response.json();
+  
+  // Check for API errors
+  if (data.error) {
+    throw new Error(data.error);
+  }
+
+  // Extract organic results (standard web search results)
+  const organicResults = data.organic_results || [];
+  
+  if (organicResults.length === 0) {
+    console.log('No results found. Response keys:', Object.keys(data));
+    throw new Error('No search results found');
+  }
+
+  // Extract just the URLs from the top 5 results
+  const urls = organicResults
+    .slice(0, 5)
+    .map((result: any) => result.link)
+    .filter((url: string) => url); // Remove any undefined/null URLs
+
+  // Return the entity with URLs populated
+  return {
+    ...entity,
+    urls
+  };
 }
 
 /**

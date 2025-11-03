@@ -11,14 +11,17 @@ export interface LLMInput {
     videoTranscription?: string;
 }
 
+export interface Entity {
+  name: string;
+  type: 'restaurant' | 'product' | 'place' | 'service' | 'other';
+  description: string;
+  reason: string;
+  urls?: string[];
+}
+
 export interface EntityExtractionResult {
   success: boolean;
-  entities?: Array<{
-    name: string;
-    type: 'restaurant' | 'product' | 'place' | 'service' | 'other';
-    description: string;
-    reason: string;
-  }>;
+  entities?: Array<Entity>;
   prompt?: string;
   response?: string;
   llmInput?: LLMInput;

@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { crawlInstagramUrl, InstagramCrawlError, InstagramCrawlResult } from '@/lib/backend/instagram-crawler';
 import { getVideoDuration, VideoDurationResult } from '@/lib/backend/video-duration';
 import { transcribeVideo, TranscriptionResult } from '@/lib/backend/video-transcription';
-import { searchWithSerp, SerpSearchResult } from '@/lib/backend/serp-search';
+import { searchEntityWithSerp, searchWithSerp, SerpSearchResult } from '@/lib/backend/serp-search';
 import { searchInstagramReels } from '@/lib/api';
 import { findBestMatch, FindMatchResult } from '@/lib/matching';
-import { MatchedResult } from '@/lib/store';
+import { Entity, MatchedResult } from '@/lib/store';
 import { extractEntities, convertWebhookOutputToLLMInput, EntityExtractionResult, LLMInput } from '@/lib/backend/entity-extraction';
 
 export interface WebhookOutput {
@@ -18,7 +18,8 @@ export interface WebhookOutput {
       title: string | null;
       videoUrl: string | null;
       author: string | null;
-  } | null;
+    } | null;
+    entities?: Entity[];
   };
   debug?: {
     searchResults: SerpSearchResult[] | null;
@@ -84,6 +85,14 @@ const processWebhook = async (webhookData: WebhookData) => {
 
   const entityExtractionResult = await extractEntities(llmInput);
 
+  const entities = entityExtractionResult?.entities || [];
+  const entitiesWithUrls: Entity[] = [];
+  for (const entity of entities) {
+    const entityWithUrls = await searchEntityWithSerp(entity);
+    entitiesWithUrls.push(entityWithUrls);
+  }
+  const entitiesFinal = entitiesWithUrls || entities
+
   // Now we've got everything. If we have enough, return it. Otherwise, return an error.
   const output: WebhookOutput = {
     result: {
@@ -96,6 +105,7 @@ const processWebhook = async (webhookData: WebhookData) => {
         videoUrl: bestMatchInstagramCrawlResult?.videoUrl || null,
         author: bestMatchInstagramCrawlResult?.author || null,
       } : null,
+      entities: entitiesFinal,
     },
     debug: {
       searchResults,
