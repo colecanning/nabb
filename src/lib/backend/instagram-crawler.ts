@@ -8,6 +8,7 @@ export interface InstagramCrawlResult {
   error?: string;
   title?: string | null;
   description?: string | null;
+  author?: string | null;
   videoUrl?: string | null;
   url?: string;
   debug?: {
@@ -156,6 +157,55 @@ export async function crawlInstagramUrl(url: string): Promise<InstagramCrawlResu
       }
     }
     
+    // Try to extract author/username from og:url
+    let author = null;
+    
+    // Extract username from og:url meta tag (e.g., https://www.instagram.com/beli_eats/reel/...)
+    const ogUrlPatterns = [
+      /<meta\s+property=["']og:url["']\s+content=["']([^"']+)["']/i,
+      /<meta\s+content=["']([^"']+)["']\s+property=["']og:url["']/i,
+    ];
+    
+    for (const pattern of ogUrlPatterns) {
+      const match = html.match(pattern);
+      if (match && match[1]) {
+        const ogUrl = match[1];
+        console.log('Found og:url:', ogUrl);
+        
+        // Extract username from URL: https://www.instagram.com/USERNAME/...
+        const usernameMatch = ogUrl.match(/instagram\.com\/([^\/]+)/);
+        if (usernameMatch && usernameMatch[1]) {
+          author = usernameMatch[1];
+          console.log('Extracted author from og:url:', author);
+          break;
+        }
+      }
+    }
+    
+    // Fallback: try other author patterns
+    if (!author) {
+      const authorPatterns = [
+        // Link tag with itemprop="name"
+        /<link\s+itemprop=["']name["']\s+content=["']([^"']+)["']/i,
+        /<link\s+content=["']([^"']+)["']\s+itemprop=["']name["']/i,
+        // Meta tag with author
+        /<meta\s+name=["']author["']\s+content=["']([^"']+)["']/i,
+        /<meta\s+content=["']([^"']+)["']\s+name=["']author["']/i,
+        // Open Graph profile username
+        /<meta\s+property=["']profile:username["']\s+content=["']([^"']+)["']/i,
+        /<meta\s+content=["']([^"']+)["']\s+property=["']profile:username["']/i,
+      ];
+      
+      for (const pattern of authorPatterns) {
+        const match = html.match(pattern);
+        if (match && match[1]) {
+          author = match[1];
+          console.log('Found author with fallback pattern:', pattern.source);
+          break;
+        }
+      }
+    }
+    
     // Try to extract video URL from Instagram's JSON data
     let videoUrl = null;
     
@@ -232,6 +282,7 @@ export async function crawlInstagramUrl(url: string): Promise<InstagramCrawlResu
       success: true,
       title: title,
       description: description,
+      author: author,
       videoUrl: videoUrl,
       url: url,
       debug: {

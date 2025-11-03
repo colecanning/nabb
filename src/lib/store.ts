@@ -15,10 +15,12 @@ interface InstagramWebhookDataState {
   videoUrl: string;
   titleText: string;
   descriptionText?: string;
+  authorText?: string;
   setVideoUrl: (url: string) => void;
   setTitleText: (title: string) => void;
   setDescriptionText: (description: string) => void;
-  setInstagramData: (data: { videoUrl?: string | null; title?: string | null; description?: string | null }) => void;
+  setAuthorText: (author: string) => void;
+  setInstagramData: (data: { videoUrl?: string | null; title?: string | null; description?: string | null; author?: string | null }) => void;
   reset: () => void;
 }
 
@@ -26,18 +28,22 @@ export const useInstagramWebhookDataStore = create<InstagramWebhookDataState>((s
   videoUrl: '',
   titleText: '',
   descriptionText: '',
+  authorText: '',
   setVideoUrl: (url) => set({ videoUrl: url }),
   setTitleText: (title) => set({ titleText: title }),
   setDescriptionText: (description) => set({ descriptionText: description }),
+  setAuthorText: (author) => set({ authorText: author }),
   setInstagramData: (data) => set({
     videoUrl: data.videoUrl || '',
     titleText: data.title || '',
     descriptionText: data.description || '',
+    authorText: data.author || '',
   }),
   reset: () => set({
     videoUrl: '',
     titleText: '',
     descriptionText: '',
+    authorText: '',
   }),
 }));
 

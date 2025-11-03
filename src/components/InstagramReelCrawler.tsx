@@ -14,7 +14,7 @@ export default function InstagramReelCrawler() {
   const [result, setResult] = useState<InstagramCrawlResult | null>(null);
   
   // Get state and actions from Zustand store
-  const { videoUrl, titleText, descriptionText, setVideoUrl, setTitleText, setDescriptionText, setInstagramData } = useInstagramWebhookDataStore();
+  const { videoUrl, titleText, descriptionText, authorText, setVideoUrl, setTitleText, setDescriptionText, setAuthorText, setInstagramData } = useInstagramWebhookDataStore();
   const { updateFinalResult } = useFinalResultStore();
   const { setVideoDuration } = useVideoDurationStore();
   const { setTranscription } = useTranscriptionStore();
@@ -37,6 +37,7 @@ export default function InstagramReelCrawler() {
           videoUrl: data.videoUrl,
           title: data.title,
           description: data.description,
+          author: data.author,
         });
         
         updateFinalResult({
@@ -83,6 +84,7 @@ export default function InstagramReelCrawler() {
           videoUrl: data.instagramCrawlResult.videoUrl,
           title: data.instagramCrawlResult.title,
           description: data.instagramCrawlResult.description,
+          author: data.instagramCrawlResult.author,
         });
         
         setVideoDuration(data.result.result?.videoDuration || null) 
@@ -229,6 +231,42 @@ export default function InstagramReelCrawler() {
 
         <div style={{ marginBottom: '20px' }}>
           <label 
+            htmlFor="authorText" 
+            style={{ 
+              display: 'block', 
+              fontSize: '16px', 
+              fontWeight: '600', 
+              marginBottom: '8px',
+              color: '#333'
+            }}
+          >
+            Author
+          </label>
+          <input
+            type="text"
+            id="authorText"
+            value={authorText}
+            onChange={(e) => setAuthorText(e.target.value)}
+            placeholder="Author will appear here after processing"
+            style={{
+              width: '100%',
+              padding: '12px',
+              fontSize: '16px',
+              border: '2px solid #e0e0e0',
+              borderRadius: '6px',
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              boxSizing: 'border-box',
+              fontFamily: 'monospace',
+              backgroundColor: '#f9f9f9'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#e1306c'}
+            onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+          />
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label 
             htmlFor="descriptionText" 
             style={{ 
               display: 'block', 
@@ -343,6 +381,34 @@ export default function InstagramReelCrawler() {
                 ✅ Content Extracted
               </p>
               
+              {result.author && (
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  padding: '16px',
+                  borderRadius: '6px',
+                  border: '1px solid #c8e6c9',
+                  marginBottom: '16px'
+                }}>
+                  <p style={{ 
+                    fontSize: '14px', 
+                    fontWeight: '600', 
+                    color: '#333',
+                    marginBottom: '8px'
+                  }}>
+                    Author:
+                  </p>
+                  <p style={{ 
+                    fontSize: '14px', 
+                    color: '#555',
+                    lineHeight: '1.6',
+                    margin: '0',
+                    fontFamily: 'monospace'
+                  }}>
+                    @{result.author}
+                  </p>
+                </div>
+              )}
+
               {result.title && (
                 <div style={{
                   backgroundColor: '#ffffff',
@@ -436,7 +502,7 @@ export default function InstagramReelCrawler() {
                 </div>
               )}
 
-              {!result.title && !result.description && !result.videoUrl && (
+              {!result.author && !result.title && !result.description && !result.videoUrl && (
                 <p style={{ fontSize: '14px', color: '#666', fontStyle: 'italic' }}>
                   No content extracted
                 </p>

@@ -15,7 +15,9 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.59",
     "@sparticuz/chromium": "141.0.0",
+    "ai": "^5.0.86",
     "next": "^14.2.0",
     "next-auth": "^4.24.12",
     "puppeteer-core": "24.23.1",
