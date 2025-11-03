@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useFinalResultStore, useInstagramWebhookDataStore, useMatchResultsStore, useSearchResultsStore, useTranscriptionStore, useVideoDurationStore } from '@/lib/store';
+import { useEntityExtractionStore, useFinalResultStore, useInstagramWebhookDataStore, useMatchResultsStore, useSearchResultsStore, useTranscriptionStore, useVideoDurationStore } from '@/lib/store';
 import { crawlInstagram } from '@/lib/api';
 import { TestWebhookRespose, WebhookOutput } from '@/app/api/test-webhook/route';
 import { InstagramCrawlResult } from '@/lib/backend/instagram-crawler';
@@ -20,6 +20,7 @@ export default function InstagramReelCrawler() {
   const { setTranscription } = useTranscriptionStore();
   const { setSearchResults } = useSearchResultsStore();
   const { setMatchedResult } = useMatchResultsStore();
+  const { setEntityData } = useEntityExtractionStore();
 
   const handleProcess = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,6 +95,8 @@ export default function InstagramReelCrawler() {
         setSearchResults(data.result.debug?.searchResults || null);
 
         setMatchedResult(data.result.debug?.bestMatch?.matchedResult || null);
+
+        setEntityData(data.result.debug?.entityExtractionResult || null);
         
         updateFinalResult(
           data.result

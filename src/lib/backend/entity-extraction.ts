@@ -25,8 +25,12 @@ export interface EntityExtractionResult {
   error?: string;
 }
 
-// Convert WebhookOutput to LLMInput
-function convertWebhookOutputToLLMInput(webhookOutput: WebhookOutput): LLMInput {
+/**
+ * Convert WebhookOutput to LLMInput
+ * @param webhookOutput - The webhook output containing video and match data
+ * @returns LLMInput for entity extraction
+ */
+export function convertWebhookOutputToLLMInput(webhookOutput: WebhookOutput): LLMInput {
   return {
     author: webhookOutput.result?.bestMatch?.author || null,
     title: webhookOutput.result?.title || null,
@@ -36,14 +40,12 @@ function convertWebhookOutputToLLMInput(webhookOutput: WebhookOutput): LLMInput 
 }
 
 /**
- * Extract entities from webhook output using AI
- * @param webhookOutput - The webhook output containing video and match data
+ * Extract entities from LLM input using AI
+ * @param llmInput - The LLM input containing author, title, duration, and transcription
  * @returns Entity extraction result with entities, prompt, and metadata
  */
-export async function extractEntities(webhookOutput: WebhookOutput): Promise<EntityExtractionResult> {
+export async function extractEntities(llmInput: LLMInput): Promise<EntityExtractionResult> {
   try {
-    // Convert to LLMInput
-    const llmInput = convertWebhookOutputToLLMInput(webhookOutput);
 
     // Read the prompt template
     const promptTemplatePath = join(process.cwd(), 'src', 'lib', 'prompt', 'basic.md');

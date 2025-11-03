@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { WebhookOutput } from '@/app/api/test-webhook/route';
-import { extractEntities } from '@/lib/backend/entity-extraction';
+import { extractEntities, convertWebhookOutputToLLMInput } from '@/lib/backend/entity-extraction';
 
 export async function POST(request: NextRequest) {
   try {
     // Parse the incoming WebhookOutput
     const webhookOutput: WebhookOutput = await request.json();
 
+    // Convert to LLMInput
+    const llmInput = convertWebhookOutputToLLMInput(webhookOutput);
+
     // Extract entities using the reusable function
-    const result = await extractEntities(webhookOutput);
+    const result = await extractEntities(llmInput);
 
     return NextResponse.json(result);
 
@@ -43,8 +46,11 @@ export async function GET(request: NextRequest) {
       }
     };
 
+    // Convert to LLMInput
+    const llmInput = convertWebhookOutputToLLMInput(sampleWebhookOutput);
+
     // Extract entities using the reusable function
-    const result = await extractEntities(sampleWebhookOutput);
+    const result = await extractEntities(llmInput);
 
     return NextResponse.json(result);
 

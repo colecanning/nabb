@@ -6,6 +6,7 @@ import { searchWithSerp, SerpSearchResult } from '@/lib/backend/serp-search';
 import { searchInstagramReels } from '@/lib/api';
 import { findBestMatch, FindMatchResult } from '@/lib/matching';
 import { MatchedResult } from '@/lib/store';
+import { extractEntities, convertWebhookOutputToLLMInput, EntityExtractionResult, LLMInput } from '@/lib/backend/entity-extraction';
 
 export interface WebhookOutput {
   result?: {
@@ -23,6 +24,7 @@ export interface WebhookOutput {
     searchResults: SerpSearchResult[] | null;
     bestMatch: FindMatchResult | null;
     bestMatchInstagramCrawlResult: InstagramCrawlResult | null;
+    entityExtractionResult?: EntityExtractionResult;
   };
 }
 
@@ -72,6 +74,16 @@ const processWebhook = async (webhookData: WebhookData) => {
     }
   }
 
+  // Extract entities from the output
+  const llmInput = {
+    author: bestMatchInstagramCrawlResult?.author || null ,
+    title: webhookData.title || null,
+    videoDuration: videoDurationResult?.duration || null,
+    videoTranscription: audioTranscriptionResult?.transcription || undefined,
+  } as LLMInput;
+
+  const entityExtractionResult = await extractEntities(llmInput);
+
   // Now we've got everything. If we have enough, return it. Otherwise, return an error.
   const output: WebhookOutput = {
     result: {
@@ -89,8 +101,10 @@ const processWebhook = async (webhookData: WebhookData) => {
       searchResults,
       bestMatch,
       bestMatchInstagramCrawlResult,
+      entityExtractionResult
     }
-  }
+  };
+  
   return output;
 }
 
