@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { sendInstagramMessage } from '@/lib/backend/instagram-messaging';
+import { processWebhook, WebhookData } from '@/app/api/test-webhook/route';
 
 /**
  * Webhook endpoint for Instagram API
@@ -6,6 +8,119 @@ import { NextRequest, NextResponse } from 'next/server';
  * GET: Handles webhook verification from Instagram
  * POST: Receives webhook notifications for new messages
  */
+
+// Type definitions for Instagram webhook payloads
+
+interface InstagramWebhookSender {
+  id: string;
+}
+
+interface InstagramWebhookRecipient {
+  id: string;
+}
+
+interface InstagramReelPayload {
+  reel_video_id: string;
+  title?: string;
+  url: string;
+}
+
+interface InstagramAttachment {
+  type: 'ig_reel' | 'image' | 'video' | 'audio' | 'file';
+  payload: InstagramReelPayload | {
+    url: string;
+    [key: string]: any;
+  };
+}
+
+interface InstagramMessage {
+  mid: string;
+  text?: string;
+  attachments?: InstagramAttachment[];
+}
+
+interface InstagramMessagingItem {
+  sender: InstagramWebhookSender;
+  recipient: InstagramWebhookRecipient;
+  timestamp: number;
+  message?: InstagramMessage;
+}
+
+interface InstagramChangeValue {
+  sender?: InstagramWebhookSender;
+  recipient?: InstagramWebhookRecipient;
+  timestamp?: number;
+  message?: InstagramMessage;
+}
+
+interface InstagramChange {
+  field: string;
+  value: InstagramChangeValue;
+}
+
+interface InstagramWebhookEntry {
+  time: number;
+  id: string;
+  messaging?: InstagramMessagingItem[];
+  changes?: InstagramChange[];
+}
+
+interface InstagramWebhookPayload {
+  object: string;
+  entry: InstagramWebhookEntry[];
+}
+
+type WebhookPayload = InstagramWebhookPayload;
+
+/**
+ * Handles sending an automated Instagram reply when a reel is received and processes the webhook
+ * @param senderId - The Instagram user ID to send the message to
+ * @param webhookData - The webhook data containing title and videoUrl
+ * @param replyToMessageId - Optional message ID to reply to (for threading)
+ */
+async function handleReelAutoReply(
+  senderId: string, 
+  webhookData: WebhookData,
+  replyToMessageId?: string
+) {
+  try {
+    const result = await sendInstagramMessage({
+      recipient_id: senderId,
+      message: "Thinking...",
+      reply_to: replyToMessageId,
+    });
+
+    if (!result.success) {
+      console.error('Failed to send reply:', result.error, result.errorDetails);
+      return;
+    }
+    
+    console.log('Successfully sent reply to', senderId);
+
+    // Process the webhook after sending the message
+    console.log('Processing webhook with data:', webhookData);
+    const output = await processWebhook(webhookData, senderId);
+    console.log('Webhook processed successfully:', output.saveId);
+    
+    // Send completion message with link to results
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'http://localhost:3000';
+    const savePageUrl = `${baseUrl}/saves/${output.saveId}`;
+    
+    const completionResult = await sendInstagramMessage({
+      recipient_id: senderId,
+      message: `Done! View your results here: ${savePageUrl}`,
+      reply_to: replyToMessageId,
+    });
+    
+    if (!completionResult.success) {
+      console.error('Failed to send completion message:', completionResult.error);
+    }
+  } catch (error) {
+    console.error('Error in handleReelAutoReply:', error);
+  }
+}
 
 // GET handler for webhook verification
 export async function GET(request: NextRequest) {
@@ -61,20 +176,73 @@ export async function GET(request: NextRequest) {
 // POST handler for receiving webhook events
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body: WebhookPayload = await request.json();
 
     console.log('Received webhook:', JSON.stringify(body, null, 2));
+    console.log("--- 0")
 
     // Check if this is an Instagram webhook
     if (body.object === 'instagram') {
+      console.log("--- 1")
       // Iterate over each entry (there may be multiple if batched)
       for (const entry of body.entry || []) {
+        console.log("--- 2")
+
         const instagramBusinessAccountId = entry.id;
         const time = entry.time;
 
-        // Get the changes (Instagram uses 'changes' array, not 'messaging')
-        const changes = entry.changes || [];
+        // Handle messaging array (direct message format)
+        const messaging = entry.messaging || [];
+        for (const messagingItem of messaging) {
+          console.log("--- 3")
+          const senderId = messagingItem.sender.id;
+          const recipientId = messagingItem.recipient.id;
+          const timestamp = messagingItem.timestamp;
 
+          if (messagingItem.message) {
+            console.log("--- 4")
+            const messageId = messagingItem.message.mid;
+            const messageText = messagingItem.message.text;
+            const attachments = messagingItem.message.attachments;
+
+            console.log(`New Instagram message from ${senderId}:`, {
+              messageId,
+              messageText,
+              attachments: attachments?.length || 0,
+              timestamp,
+              recipientId,
+            });
+
+            // Check if message contains an ig_reel attachment
+            const reelAttachment = attachments?.find(
+              (attachment) => attachment.type === 'ig_reel'
+            );
+
+            if (reelAttachment && reelAttachment.payload) {
+              console.log("--- 5")
+              console.log("--- 6", senderId)
+              
+              // Extract reel data
+              const webhookData: WebhookData = {
+                title: 'title' in reelAttachment.payload ? reelAttachment.payload.title || null : null,
+                videoUrl: reelAttachment.payload.url || null,
+              };
+              
+              // Send "Thinking..." message as auto-reply and process webhook
+              await handleReelAutoReply(senderId, webhookData);
+            }
+
+            // TODO: Add your custom logic here to handle incoming messages
+            // Examples:
+            // - Store the message in a database
+            // - Trigger an automated response
+            // - Send a notification
+            // - Process the message with AI/NLP
+          }
+        }
+
+        // Handle changes array (alternative format used by some webhook types)
+        const changes = entry.changes || [];
         for (const change of changes) {
           // Check if this is a messages field
           if (change.field === 'messages') {
@@ -97,23 +265,28 @@ export async function POST(request: NextRequest) {
                 recipientId,
               });
 
+              // Check if message contains an ig_reel attachment
+              const reelAttachment = attachments?.find(
+                (attachment) => attachment.type === 'ig_reel'
+              );
+
+              if (reelAttachment && reelAttachment.payload && senderId) {
+                // Extract reel data
+                const webhookData: WebhookData = {
+                  title: 'title' in reelAttachment.payload ? reelAttachment.payload.title || null : null,
+                  videoUrl: reelAttachment.payload.url || null,
+                };
+                
+                // Send "Thinking..." message as auto-reply and process webhook
+                await handleReelAutoReply(senderId, webhookData, messageId);
+              }
+
               // TODO: Add your custom logic here to handle incoming messages
               // Examples:
               // - Store the message in a database
               // - Trigger an automated response
               // - Send a notification
               // - Process the message with AI/NLP
-              
-              // Example: You could call your send-message API to auto-reply
-              // const autoReplyUrl = `${request.nextUrl.origin}/api/send-message`;
-              // await fetch(autoReplyUrl, {
-              //   method: 'POST',
-              //   headers: { 'Content-Type': 'application/json' },
-              //   body: JSON.stringify({
-              //     recipient_id: senderId,
-              //     message: 'Thanks for your message! We will get back to you soon.',
-              //   }),
-              // });
             }
           }
 

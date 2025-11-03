@@ -21,6 +21,9 @@ export default function Header() {
             <Link href="/saves" style={styles.navLink}>
               Saves
             </Link>
+            <Link href="/test-webhook" style={styles.navLink}>
+              Test Webhook
+            </Link>
           </nav>
           <div style={styles.userInfo}>
             <span style={styles.welcomeText}>

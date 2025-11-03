@@ -38,12 +38,12 @@ export interface TestWebhookRespose {
   saveId: string;
 }
 
-interface WebhookData {
+export interface WebhookData {
   title: string | null;
   videoUrl: string | null;
 }
 
-const processWebhook = async (webhookData: WebhookData, instagramUserId?: string | null) => {
+export const processWebhook = async (webhookData: WebhookData, instagramUserId?: string | null) => {
   // Save initial input to Supabase
   const { data: savedRecord, error: saveError } = await supabase
     .from('saves')
