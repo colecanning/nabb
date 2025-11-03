@@ -184,3 +184,34 @@ export const useScrapeMatchStore = create<ScrapeMatchState>((set) => ({
   reset: () => set({ scrapedMatchData: null, scrapingMatch: false }),
 }));
 
+export interface Entity {
+  name: string;
+  type: 'restaurant' | 'product' | 'place' | 'service' | 'other';
+  description: string;
+  reason: string;
+}
+
+export interface EntityExtractionData {
+  success?: boolean;
+  entities?: Entity[];
+  prompt?: string;
+  response?: string;
+  error?: string;
+}
+
+interface EntityExtractionState {
+  entityData: EntityExtractionData | null;
+  extractingEntities: boolean;
+  setEntityData: (data: EntityExtractionData | null) => void;
+  setExtractingEntities: (extracting: boolean) => void;
+  reset: () => void;
+}
+
+export const useEntityExtractionStore = create<EntityExtractionState>((set) => ({
+  entityData: null,
+  extractingEntities: false,
+  setEntityData: (data) => set({ entityData: data }),
+  setExtractingEntities: (extracting) => set({ extractingEntities: extracting }),
+  reset: () => set({ entityData: null, extractingEntities: false }),
+}));
+

@@ -16,7 +16,8 @@ export interface WebhookOutput {
     bestMatch: {
       title: string | null;
       videoUrl: string | null;
-    } | null;
+      author: string | null;
+  } | null;
   };
   debug?: {
     searchResults: SerpSearchResult[] | null;
@@ -81,6 +82,7 @@ const processWebhook = async (webhookData: WebhookData) => {
       bestMatch: bestMatchInstagramCrawlResult ? {
         title: bestMatchInstagramCrawlResult?.title || null,
         videoUrl: bestMatchInstagramCrawlResult?.videoUrl || null,
+        author: bestMatchInstagramCrawlResult?.author || null,
       } : null,
     },
     debug: {
@@ -113,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     const webhookData = {
       title: instagramCrawlResult.title || null,
-      videoUrl: instagramCrawlResult.videoUrl || null
+      videoUrl: instagramCrawlResult.videoUrl || null,
     }
 
     const output = await processWebhook(webhookData)

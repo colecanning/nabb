@@ -1,23 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { WebhookOutput } from '@/app/api/test-webhook/route';
+import { extractEntities } from '@/lib/backend/entity-extraction';
 
 export async function POST(request: NextRequest) {
   try {
-    // Hard-coded prompt
-    const prompt = "Explain the concept of Test-Driven Development in 3 sentences.";
+    // Parse the incoming WebhookOutput
+    const webhookOutput: WebhookOutput = await request.json();
 
-    // Call OpenAI using Vercel AI SDK
-    const { text } = await generateText({
-      model: openai('gpt-4o-mini'),
-      prompt: prompt,
-    });
+    // Extract entities using the reusable function
+    const result = await extractEntities(webhookOutput);
 
-    return NextResponse.json({
-      success: true,
-      prompt: prompt,
-      response: text,
-    });
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('AI API error:', error);
@@ -32,23 +25,28 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Optional GET endpoint to test the route easily
+// Optional GET endpoint to test the route easily with sample data
 export async function GET(request: NextRequest) {
   try {
-    // Hard-coded prompt
-    const prompt = "Explain the concept of Test-Driven Development in 3 sentences.";
+    // Sample WebhookOutput for testing
+    const sampleWebhookOutput: WebhookOutput = {
+      result: {
+        title: "Amazing coffee review at Starbucks",
+        videoUrl: "https://example.com/video.mp4",
+        videoDuration: 30,
+        videoTranscription: "This is the best pumpkin cream cold brew I've ever had at Starbucks!",
+        bestMatch: {
+          title: "Starbucks Pumpkin Cream Cold Brew Review",
+          videoUrl: "https://instagram.com/reel/example",
+          author: "@coffeelover123",
+        }
+      }
+    };
 
-    // Call OpenAI using Vercel AI SDK
-    const { text } = await generateText({
-      model: openai('gpt-4o-mini'),
-      prompt: prompt,
-    });
+    // Extract entities using the reusable function
+    const result = await extractEntities(sampleWebhookOutput);
 
-    return NextResponse.json({
-      success: true,
-      prompt: prompt,
-      response: text,
-    });
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('AI API error:', error);

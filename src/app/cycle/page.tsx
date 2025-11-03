@@ -7,6 +7,7 @@ import AudioTranscriptionSection from '@/components/AudioTranscriptionSection';
 import FindInstagramReelSection from '@/components/FindInstagramReelSection';
 import FindMatchSection from '@/components/FindMatchSection';
 import ScrapeMatchSection from '@/components/ScrapeMatchSection';
+import EntityExtractionSection from '@/components/EntityExtractionSection';
 import { useFinalResultStore } from '@/lib/store';
 
 export default function CyclePage() {
@@ -72,6 +73,8 @@ export default function CyclePage() {
           </p>
         )}
       </div>
+
+      <EntityExtractionSection />
     </main>
     </>
   );
