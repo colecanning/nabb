@@ -184,11 +184,13 @@ export const useScrapeMatchStore = create<ScrapeMatchState>((set) => ({
   reset: () => set({ scrapedMatchData: null, scrapingMatch: false }),
 }));
 
+// TODO: two of these
 export interface Entity {
   name: string;
   type: 'restaurant' | 'product' | 'place' | 'service' | 'other';
   description: string;
   reason: string;
+  urls?: string[];
 }
 
 export interface EntityExtractionData {
