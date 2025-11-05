@@ -116,8 +116,34 @@ export async function searchEntityWithSerp(entity: Entity): Promise<Entity> {
  * @returns Promise resolving to search results or throwing an error
  */
 export async function searchWithSerp(query: string): Promise<SerpSearchResponse> {
+  // Strip newlines from the query first
+  const cleanedQuery = query.replace(/[\r\n]+/g, ' ');
+  
   // Limit query to first 100 characters and add Instagram site filter
-  const limitedQuery = query.substring(0, 100);
+  let limitedQuery = cleanedQuery.substring(0, 100);
+  
+  // If we truncated and didn't end on a word boundary, handle the partial word
+  if (cleanedQuery.length > 100) {
+    // Check if we're in the middle of a word (next char exists and is not whitespace)
+    if (cleanedQuery[100] && !/\s/.test(cleanedQuery[100])) {
+      // Find the end of the current word in the remaining string
+      const restOfString = cleanedQuery.substring(100);
+      const wordEndMatch = restOfString.match(/^(\S+)/);
+      
+      if (wordEndMatch) {
+        const remainingWord = wordEndMatch[1];
+        
+        // If the remaining part of the word is <= 20 characters, include it
+        if (remainingWord.length <= 20) {
+          limitedQuery += remainingWord;
+        } else {
+          // Remove the partial word we already have at the end
+          limitedQuery = limitedQuery.replace(/\S+$/, '').trimEnd();
+        }
+      }
+    }
+  }
+
   const instagramQuery = `${limitedQuery} site:instagram.com`;
 
   const serpApiKey = process.env.SERPAPI_API_KEY;
@@ -129,15 +155,51 @@ export async function searchWithSerp(query: string): Promise<SerpSearchResponse>
     throw error;
   }
 
-  console.log('Searching Google via SerpAPI for:', instagramQuery, limitedQuery.length < query.length ? `(truncated from ${query.length} chars)` : '');
+  console.log('Searching Google via SerpAPI for:', instagramQuery, limitedQuery.length < cleanedQuery.length ? `(truncated from ${cleanedQuery.length} chars)` : '');
+
+  // From us
+  // https://serpapi.com/search?engine=google_videos&q=NYC+has+a+new+Asian-inspired+speakeasy+in+an+old+opera+house+%28underneath+%40chinesetuxedo+%29%F0%9F%A5%A1%F0%9F%A5%AE%F0%9F%8D%B8%21+%0A%0AT+site%3Ainstagram.com&api_key=4dfe0b45eab2bf6955dc2862a372459fcc2ec1363bc77cc49c9b540d7e06e203
+
+  /*
+
+  Ours V1
+  https://serpapi.com/search?
+    engine=google_videos
+    &q=NYC+has+a+new+Asian-inspired+speakeasy+in+an+old+opera+house+%28underneath+%40chinesetuxedo+%29%F0%9F%A5%A1%F0%9F%A5%AE%F0%9F%8D%B8%21+%0A%0AT+site%3Ainstagram.com
+    &api_key=4dfe0b45eab2bf6955dc2862a372459fcc2ec1363bc77cc49c9b540d7e06e203
+
+
+    https://serpapi.com/search?
+    engine=google_videos
+    &google_domain=google.com
+    &q=NYC+has+a+new+Asian-inspired+speakeasy+in+an+old+opera+house+%28underneath+%40chinesetuxedo+%29%F0%9F%A5%A1%F0%9F%A5%AE%F0%9F%8D%B8%21+%0A%0AT+site%3Ainstagram.com
+    &api_key=4dfe0b45eab2bf6955dc2862a372459fcc2ec1363bc77cc49c9b540d7e06e203
+    &async=true
+
+  Theirs  
+  https://serpapi.com/search.json?
+    engine=google_videos
+    &q=NYC+has+a+new+Asian-inspired+speakeasy+in+an+old+opera+house+(underneath+%40chinesetuxedo+)%F0%9F%A5%A1%F0%9F%A5%AE%F0%9F%8D%B8!
+    &google_domain=google.com
+    &api_key=4dfe0b45eab2bf6955dc2862a372459fcc2ec1363bc77cc49c9b540d7e06e203
+    &async=true
+  
+  */
+  // From Serp
+  // https://serpapi.com/search.json?engine=google_videos&q=NYC+has+a+new+Asian-inspired+speakeasy+in+an+old+opera+house+(underneath+%40chinesetuxedo+)%F0%9F%A5%A1%F0%9F%A5%AE%F0%9F%8D%B8!&google_domain=google.com&api_key=4dfe0b45eab2bf6955dc2862a372459fcc2ec1363bc77cc49c9b540d7e06e203&async=true
 
   // Use SerpAPI's Google search endpoint with Instagram site filter
   const searchUrl = new URL('https://serpapi.com/search');
+  // const searchUrl = new URL('https://www.searchapi.io/api/v1/search');
+  // const searchUrl = new URL('https://serpapi.com/api/v1/search');
+
   // searchUrl.searchParams.append('engine', 'duckduckgo');
-  searchUrl.searchParams.append('engine', 'google');
+  searchUrl.searchParams.append('engine', 'google_videos');
+  searchUrl.searchParams.append('google_domain', 'google.com');
   searchUrl.searchParams.append('q', instagramQuery);
-  searchUrl.searchParams.append('tbm', 'vid'); // Limit to video results only
+  // searchUrl.searchParams.append('tbm', 'vid'); // Limit to video results only
   searchUrl.searchParams.append('api_key', serpApiKey);
+  searchUrl.searchParams.append('async', 'true');
   
   // Add timeout to prevent hanging
   const controller = new AbortController();
@@ -145,6 +207,7 @@ export async function searchWithSerp(query: string): Promise<SerpSearchResponse>
   
   let response;
   try {
+    console.log('Search URL:', searchUrl.toString());
     response = await fetch(searchUrl.toString(), {
       signal: controller.signal,
       headers: {
@@ -241,7 +304,7 @@ export async function searchWithSerp(query: string): Promise<SerpSearchResponse>
     results: results,
     query: instagramQuery,
     originalQuery: query,
-    wasTruncated: limitedQuery.length < query.length,
+    wasTruncated: limitedQuery.length < cleanedQuery.length,
     metadata: {
       searchMetadata: data.search_metadata,
       searchParameters: data.search_parameters,
