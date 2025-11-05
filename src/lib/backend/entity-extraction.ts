@@ -58,8 +58,15 @@ export async function extractEntities(llmInput: LLMInput, promptTemplate?: strin
       template = await readFile(promptTemplatePath, 'utf-8');
     }
 
+    // Change the llm input - rename 'author' to 'handle'
+    const { author, ...restOfInput } = llmInput;
+    const llmInputChanged = {
+      handle: author,
+      ...restOfInput,
+    }
+
     // Replace JSON_INPUT with the actual data
-    const prompt = template.replace('JSON_INPUT', JSON.stringify(llmInput, null, 2));
+    const prompt = template.replace('JSON_INPUT', JSON.stringify(llmInputChanged, null, 2));
 
     // Call OpenAI using Vercel AI SDK
     const { text } = await generateText({
