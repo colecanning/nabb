@@ -171,7 +171,7 @@ export async function searchWithSerp(query: string): Promise<SerpSearchResponse>
   // Retry configuration
   const maxRetries = 3; // Retries for network errors
   const maxNoResultsRetries = 2; // Additional retries when no results found
-  const baseDelay = 1000; // 1 second
+  const baseDelay = 5000; // 5 seconds
   
   let results: SerpSearchResult[] = [];
   let responseData: any = null;
