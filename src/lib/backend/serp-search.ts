@@ -157,41 +157,8 @@ export async function searchWithSerp(query: string): Promise<SerpSearchResponse>
 
   console.log('Searching Google via SerpAPI for:', instagramQuery, limitedQuery.length < cleanedQuery.length ? `(truncated from ${cleanedQuery.length} chars)` : '');
 
-  // From us
-  // https://serpapi.com/search?engine=google_videos&q=NYC+has+a+new+Asian-inspired+speakeasy+in+an+old+opera+house+%28underneath+%40chinesetuxedo+%29%F0%9F%A5%A1%F0%9F%A5%AE%F0%9F%8D%B8%21+%0A%0AT+site%3Ainstagram.com&api_key=4dfe0b45eab2bf6955dc2862a372459fcc2ec1363bc77cc49c9b540d7e06e203
-
-  /*
-
-  Ours V1
-  https://serpapi.com/search?
-    engine=google_videos
-    &q=NYC+has+a+new+Asian-inspired+speakeasy+in+an+old+opera+house+%28underneath+%40chinesetuxedo+%29%F0%9F%A5%A1%F0%9F%A5%AE%F0%9F%8D%B8%21+%0A%0AT+site%3Ainstagram.com
-    &api_key=4dfe0b45eab2bf6955dc2862a372459fcc2ec1363bc77cc49c9b540d7e06e203
-
-
-    https://serpapi.com/search?
-    engine=google_videos
-    &google_domain=google.com
-    &q=NYC+has+a+new+Asian-inspired+speakeasy+in+an+old+opera+house+%28underneath+%40chinesetuxedo+%29%F0%9F%A5%A1%F0%9F%A5%AE%F0%9F%8D%B8%21+%0A%0AT+site%3Ainstagram.com
-    &api_key=4dfe0b45eab2bf6955dc2862a372459fcc2ec1363bc77cc49c9b540d7e06e203
-    &async=true
-
-  Theirs  
-  https://serpapi.com/search.json?
-    engine=google_videos
-    &q=NYC+has+a+new+Asian-inspired+speakeasy+in+an+old+opera+house+(underneath+%40chinesetuxedo+)%F0%9F%A5%A1%F0%9F%A5%AE%F0%9F%8D%B8!
-    &google_domain=google.com
-    &api_key=4dfe0b45eab2bf6955dc2862a372459fcc2ec1363bc77cc49c9b540d7e06e203
-    &async=true
-  
-  */
-  // From Serp
-  // https://serpapi.com/search.json?engine=google_videos&q=NYC+has+a+new+Asian-inspired+speakeasy+in+an+old+opera+house+(underneath+%40chinesetuxedo+)%F0%9F%A5%A1%F0%9F%A5%AE%F0%9F%8D%B8!&google_domain=google.com&api_key=4dfe0b45eab2bf6955dc2862a372459fcc2ec1363bc77cc49c9b540d7e06e203&async=true
-
   // Use SerpAPI's Google search endpoint with Instagram site filter
   const searchUrl = new URL('https://serpapi.com/search');
-  // const searchUrl = new URL('https://www.searchapi.io/api/v1/search');
-  // const searchUrl = new URL('https://serpapi.com/api/v1/search');
 
   // searchUrl.searchParams.append('engine', 'duckduckgo');
   searchUrl.searchParams.append('engine', 'google_videos');
@@ -201,32 +168,69 @@ export async function searchWithSerp(query: string): Promise<SerpSearchResponse>
   searchUrl.searchParams.append('api_key', serpApiKey);
   searchUrl.searchParams.append('async', 'true');
   
-  // Add timeout to prevent hanging
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+  // Retry configuration
+  const maxRetries = 3;
+  const baseDelay = 1000; // 1 second
   
   let response;
-  try {
-    console.log('Search URL:', searchUrl.toString());
-    response = await fetch(searchUrl.toString(), {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; SearchBot/1.0)',
+  let lastError: any;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    
+    try {
+      console.log(`Search URL (attempt ${attempt}/${maxRetries}):`, searchUrl.toString());
+      response = await fetch(searchUrl.toString(), {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; SearchBot/1.0)',
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // If successful or client error (4xx), don't retry
+      if (response.ok || (response.status >= 400 && response.status < 500)) {
+        break;
       }
-    });
-  } catch (fetchError: any) {
-    clearTimeout(timeoutId);
-    if (fetchError.name === 'AbortError') {
-      console.error('SerpAPI request timed out');
-      const error: SerpSearchError = {
-        success: false,
-        error: 'Search request timed out. Please try again.'
-      };
-      throw error;
+      
+      // Server error (5xx) - retry
+      console.warn(`SerpAPI returned status ${response.status}, retrying...`);
+      lastError = new Error(`Server error: ${response.status}`);
+      
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      lastError = fetchError;
+      
+      if (fetchError.name === 'AbortError') {
+        console.error(`SerpAPI request timed out (attempt ${attempt}/${maxRetries})`);
+        if (attempt === maxRetries) {
+          const error: SerpSearchError = {
+            success: false,
+            error: 'Search request timed out after multiple attempts. Please try again.'
+          };
+          throw error;
+        }
+      } else {
+        console.error(`SerpAPI request failed (attempt ${attempt}/${maxRetries}):`, fetchError.message);
+        if (attempt === maxRetries) {
+          throw fetchError;
+        }
+      }
     }
-    throw fetchError;
-  } finally {
-    clearTimeout(timeoutId);
+    
+    // Wait before retrying (exponential backoff)
+    if (attempt < maxRetries) {
+      const delay = baseDelay * Math.pow(2, attempt - 1);
+      console.log(`Waiting ${delay}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  if (!response) {
+    throw lastError || new Error('Failed to fetch after multiple retries');
   }
 
   if (!response.ok) {
