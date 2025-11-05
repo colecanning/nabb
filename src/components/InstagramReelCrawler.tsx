@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useEntityExtractionStore, useFinalResultStore, useInstagramWebhookDataStore, useMatchResultsStore, useSearchResultsStore, useTranscriptionStore, useVideoDurationStore } from '@/lib/store';
+import { useEntityExtractionStore, useFinalResultStore, useInstagramWebhookDataStore, useMatchResultsStore, useSearchResultsStore, useTranscriptionStore, useVideoDurationStore, useCustomPromptStore } from '@/lib/store';
 import { crawlInstagram } from '@/lib/api';
 import { TestWebhookRespose, WebhookOutput } from '@/app/api/test-webhook/route';
 import { InstagramCrawlResult } from '@/lib/backend/instagram-crawler';
@@ -21,6 +21,7 @@ export default function InstagramReelCrawler() {
   const { setSearchResults } = useSearchResultsStore();
   const { setMatchedResult } = useMatchResultsStore();
   const { setEntityData } = useEntityExtractionStore();
+  const { customPrompt } = useCustomPromptStore();
 
   const handleProcess = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +69,10 @@ export default function InstagramReelCrawler() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ 
+          url,
+          customPrompt: customPrompt || undefined,
+        }),
       });
 
       const data = await response.json() as TestWebhookRespose;

@@ -217,3 +217,15 @@ export const useEntityExtractionStore = create<EntityExtractionState>((set) => (
   reset: () => set({ entityData: null, extractingEntities: false }),
 }));
 
+interface CustomPromptState {
+  customPrompt: string;
+  setCustomPrompt: (prompt: string) => void;
+  reset: () => void;
+}
+
+export const useCustomPromptStore = create<CustomPromptState>((set) => ({
+  customPrompt: '',
+  setCustomPrompt: (prompt) => set({ customPrompt: prompt }),
+  reset: () => set({ customPrompt: '' }),
+}));
+

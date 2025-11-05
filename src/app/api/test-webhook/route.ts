@@ -43,7 +43,7 @@ export interface WebhookData {
   videoUrl: string | null;
 }
 
-export const processWebhook = async (webhookData: WebhookData, instagramUserId?: string | null) => {
+export const processWebhook = async (webhookData: WebhookData, instagramUserId?: string | null, customPrompt?: string | null) => {
   // Save initial input to Supabase
   const { data: savedRecord, error: saveError } = await supabase
     .from('saves')
@@ -104,7 +104,7 @@ export const processWebhook = async (webhookData: WebhookData, instagramUserId?:
     videoTranscription: audioTranscriptionResult?.transcription || undefined,
   } as LLMInput;
 
-  const entityExtractionResult = await extractEntities(llmInput);
+  const entityExtractionResult = await extractEntities(llmInput, customPrompt || undefined);
 
   const entities = entityExtractionResult?.entities || [];
   const entitiesWithUrls: Entity[] = [];
@@ -157,7 +157,7 @@ export const processWebhook = async (webhookData: WebhookData, instagramUserId?:
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json();
+    const { url, customPrompt } = await request.json();
 
     if (!url) {
       return NextResponse.json(
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     // Extract instagram user ID from the author field if available
     const instagramUserId = instagramCrawlResult.author || null;
 
-    const output = await processWebhook(webhookData, instagramUserId)
+    const output = await processWebhook(webhookData, instagramUserId, customPrompt || undefined)
 
     return NextResponse.json({ 
       success: true, 

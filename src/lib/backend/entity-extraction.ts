@@ -45,17 +45,21 @@ export function convertWebhookOutputToLLMInput(webhookOutput: WebhookOutput): LL
 /**
  * Extract entities from LLM input using AI
  * @param llmInput - The LLM input containing author, title, duration, and transcription
+ * @param promptTemplate - Optional prompt template string. If not provided, reads from v2.md file
  * @returns Entity extraction result with entities, prompt, and metadata
  */
-export async function extractEntities(llmInput: LLMInput): Promise<EntityExtractionResult> {
+export async function extractEntities(llmInput: LLMInput, promptTemplate?: string): Promise<EntityExtractionResult> {
   try {
 
-    // Read the prompt template
-    const promptTemplatePath = join(process.cwd(), 'src', 'lib', 'prompt', 'v2.md');
-    const promptTemplate = await readFile(promptTemplatePath, 'utf-8');
+    // Read the prompt template if not provided
+    let template = promptTemplate;
+    if (!template) {
+      const promptTemplatePath = join(process.cwd(), 'src', 'lib', 'prompt', 'v2.md');
+      template = await readFile(promptTemplatePath, 'utf-8');
+    }
 
     // Replace JSON_INPUT with the actual data
-    const prompt = promptTemplate.replace('JSON_INPUT', JSON.stringify(llmInput, null, 2));
+    const prompt = template.replace('JSON_INPUT', JSON.stringify(llmInput, null, 2));
 
     // Call OpenAI using Vercel AI SDK
     const { text } = await generateText({

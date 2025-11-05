@@ -1,10 +1,23 @@
 'use client';
 
-import { useFinalResultStore, useEntityExtractionStore } from '@/lib/store';
+import { useState, useEffect } from 'react';
+import { useFinalResultStore, useEntityExtractionStore, useCustomPromptStore } from '@/lib/store';
 
 export default function EntityExtractionSection() {
   const { finalResult } = useFinalResultStore();
   const { entityData, extractingEntities, setEntityData, setExtractingEntities } = useEntityExtractionStore();
+  const { customPrompt, setCustomPrompt } = useCustomPromptStore();
+  
+  const [isPromptOpen, setIsPromptOpen] = useState(false);
+  const [promptDraft, setPromptDraft] = useState(customPrompt);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Sync promptDraft with saved customPrompt when the section is opened
+  useEffect(() => {
+    if (isPromptOpen) {
+      setPromptDraft(customPrompt);
+    }
+  }, [isPromptOpen, customPrompt]);
 
   const handleExtractEntities = async () => {
     if (!finalResult || Object.keys(finalResult).length === 0) {
@@ -21,7 +34,10 @@ export default function EntityExtractionSection() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(finalResult),
+        body: JSON.stringify({
+          ...finalResult,
+          customPrompt: customPrompt || undefined,
+        }),
       });
 
       const data = await response.json();
@@ -34,6 +50,15 @@ export default function EntityExtractionSection() {
     } finally {
       setExtractingEntities(false);
     }
+  };
+
+  const handleSavePrompt = () => {
+    setCustomPrompt(promptDraft);
+    alert('Prompt saved successfully!');
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
   };
 
   const hasResult = finalResult && Object.keys(finalResult).length > 0;
@@ -91,6 +116,165 @@ export default function EntityExtractionSection() {
           Complete the Instagram reel processing first to enable entity extraction
         </p>
       )}
+
+      {/* Custom Prompt Editor */}
+      <div style={{ marginTop: '20px' }}>
+        <button
+          type="button"
+          onClick={() => setIsPromptOpen(!isPromptOpen)}
+          style={{
+            width: '100%',
+            padding: '12px',
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#1976d2',
+            backgroundColor: '#ffffff',
+            border: '1px solid #2196f3',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#e3f2fd';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#ffffff';
+          }}
+        >
+          <span>⚙️ Custom Prompt Template</span>
+          <span style={{ fontSize: '20px' }}>{isPromptOpen ? '▼' : '▶'}</span>
+        </button>
+
+        {isPromptOpen && (
+          <div style={{
+            marginTop: '12px',
+            padding: '16px',
+            backgroundColor: '#f5f5f5',
+            borderRadius: '6px',
+            border: '1px solid #e0e0e0'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '12px'
+            }}>
+              <p style={{
+                fontSize: '14px',
+                color: '#555',
+                margin: '0',
+                fontStyle: 'italic'
+              }}>
+                Customize the prompt template for entity extraction. Leave empty to use default.
+              </p>
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#1976d2',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #2196f3',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  marginLeft: '8px',
+                  whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e3f2fd';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                }}
+              >
+                {isFullscreen ? '↙️ Exit Fullscreen' : '↗️ Fullscreen'}
+              </button>
+            </div>
+
+            <textarea
+              value={promptDraft}
+              onChange={(e) => setPromptDraft(e.target.value)}
+              placeholder="Enter your custom prompt template here... Use JSON_INPUT as a placeholder for the input data."
+              style={{
+                width: '100%',
+                minHeight: isFullscreen ? 'calc(100vh - 200px)' : '300px',
+                padding: '12px',
+                fontSize: '14px',
+                fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                lineHeight: '1.6',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                resize: 'vertical',
+                boxSizing: 'border-box',
+                backgroundColor: '#ffffff'
+              }}
+            />
+
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: '12px'
+            }}>
+              <button
+                type="button"
+                onClick={handleSavePrompt}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#ffffff',
+                  backgroundColor: '#4caf50',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#45a049';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#4caf50';
+                }}
+              >
+                💾 Save Prompt
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPromptDraft('');
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#ffffff',
+                  backgroundColor: '#f44336',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#da190b';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f44336';
+                }}
+              >
+                🗑️ Clear
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {entityData && (
         <div style={{

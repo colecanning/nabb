@@ -4,14 +4,21 @@ import { extractEntities, convertWebhookOutputToLLMInput } from '@/lib/backend/e
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse the incoming WebhookOutput
-    const webhookOutput: WebhookOutput = await request.json();
+    // Parse the incoming request body
+    const body = await request.json();
+    
+    // Extract customPrompt if provided
+    const customPrompt = body.customPrompt;
+    
+    // Parse the WebhookOutput (removing customPrompt from it)
+    const webhookOutput: WebhookOutput = body;
+    delete (webhookOutput as any).customPrompt;
 
     // Convert to LLMInput
     const llmInput = convertWebhookOutputToLLMInput(webhookOutput);
 
-    // Extract entities using the reusable function
-    const result = await extractEntities(llmInput);
+    // Extract entities using the reusable function, passing custom prompt if available
+    const result = await extractEntities(llmInput, customPrompt);
 
     return NextResponse.json(result);
 
