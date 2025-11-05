@@ -89,6 +89,10 @@ function calculateStringSimilarity(str1: string, str2: string): number {
   console.log('  → Levenshtein distance calculation. Score:', score.toFixed(3));
   return score;
 }
+
+const DURATION_SECONDS_DIFF = 1;
+const DURATION_PERCENT_DIFF = 0.05;
+
 // Helper function to parse duration string to seconds
 function parseDurationToSeconds(duration: string): number | null {
   if (!duration) return null;
@@ -178,8 +182,10 @@ export async function findFirstMatchByDuration(
       const durationDiff = Math.abs(videoDuration - resultDurationSeconds);
       console.log('  → Duration difference:', durationDiff, 'seconds');
 
-      if (durationDiff <= 1) {
-        console.log('✅ Match found! Duration within ±1 second');
+      const durationPercentDiff = DURATION_PERCENT_DIFF * videoDuration;
+      const durationDiffComparison = Math.max(durationPercentDiff, DURATION_SECONDS_DIFF)
+      if (durationDiff <= durationDiffComparison) {
+        console.log(`✅ Match found! Duration within ±${DURATION_SECONDS_DIFF} seconds or ±${DURATION_PERCENT_DIFF * 100}% of the video duration`);
         
         const matchedResult: MatchedResult = {
           ...result,

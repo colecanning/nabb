@@ -169,136 +169,162 @@ export async function searchWithSerp(query: string): Promise<SerpSearchResponse>
   searchUrl.searchParams.append('async', 'true');
   
   // Retry configuration
-  const maxRetries = 3;
+  const maxRetries = 3; // Retries for network errors
+  const maxNoResultsRetries = 2; // Additional retries when no results found
   const baseDelay = 1000; // 1 second
   
-  let response;
-  let lastError: any;
+  let results: SerpSearchResult[] = [];
+  let responseData: any = null;
   
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    // Add timeout to prevent hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+  // Outer loop: retry when no results found
+  for (let noResultsAttempt = 1; noResultsAttempt <= maxNoResultsRetries; noResultsAttempt++) {
+    let response;
+    let lastError: any;
     
-    try {
-      console.log(`Search URL (attempt ${attempt}/${maxRetries}):`, searchUrl.toString());
-      response = await fetch(searchUrl.toString(), {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; SearchBot/1.0)',
+    // Inner loop: retry for network/server errors
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      
+      try {
+        const attemptLabel = maxNoResultsRetries > 1 ? `(network attempt ${attempt}/${maxRetries}, search attempt ${noResultsAttempt}/${maxNoResultsRetries})` : `(attempt ${attempt}/${maxRetries})`;
+        console.log(`Search URL ${attemptLabel}:`, searchUrl.toString());
+        response = await fetch(searchUrl.toString(), {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; SearchBot/1.0)',
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        // If successful or client error (4xx), don't retry network errors
+        if (response.ok || (response.status >= 400 && response.status < 500)) {
+          break;
         }
+        
+        // Server error (5xx) - retry
+        console.warn(`SerpAPI returned status ${response.status}, retrying...`);
+        lastError = new Error(`Server error: ${response.status}`);
+        
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        lastError = fetchError;
+        
+        if (fetchError.name === 'AbortError') {
+          console.error(`SerpAPI request timed out (attempt ${attempt}/${maxRetries})`);
+          if (attempt === maxRetries) {
+            const error: SerpSearchError = {
+              success: false,
+              error: 'Search request timed out after multiple attempts. Please try again.'
+            };
+            throw error;
+          }
+        } else {
+          console.error(`SerpAPI request failed (attempt ${attempt}/${maxRetries}):`, fetchError.message);
+          if (attempt === maxRetries) {
+            throw fetchError;
+          }
+        }
+      }
+      
+      // Wait before retrying network errors (exponential backoff)
+      if (attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        console.log(`Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    if (!response) {
+      throw lastError || new Error('Failed to fetch after multiple retries');
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('SerpAPI error status:', response.status, errorText);
+      const error: SerpSearchError = {
+        success: false,
+        error: `SerpAPI error (${response.status}): ${errorText || 'Unknown error'}`,
+        details: errorText
+      };
+      throw error;
+    }
+
+    const data = await response.json();
+    responseData = data;
+    
+    // Check for API errors
+    if (data.error) {
+      const error: SerpSearchError = {
+        success: false,
+        error: data.error
+      };
+      throw error;
+    }
+
+    // Extract results - for video searches, SerpAPI returns video_results instead of organic_results
+    const organicResults = data.video_results || data.organic_results || [];
+    
+    // Log first result structure for debugging
+    if (organicResults.length > 0) {
+      console.log('Sample result structure:', JSON.stringify(organicResults[0], null, 2));
+      console.log('Available text fields:', {
+        title: organicResults[0].title?.substring(0, 50),
+        snippet: organicResults[0].snippet?.substring(0, 50),
+        description: organicResults[0].description?.substring(0, 50),
+        channelDescription: organicResults[0].channel?.description?.substring(0, 50),
       });
-      
-      clearTimeout(timeoutId);
-      
-      // If successful or client error (4xx), don't retry
-      if (response.ok || (response.status >= 400 && response.status < 500)) {
-        break;
-      }
-      
-      // Server error (5xx) - retry
-      console.warn(`SerpAPI returned status ${response.status}, retrying...`);
-      lastError = new Error(`Server error: ${response.status}`);
-      
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      lastError = fetchError;
-      
-      if (fetchError.name === 'AbortError') {
-        console.error(`SerpAPI request timed out (attempt ${attempt}/${maxRetries})`);
-        if (attempt === maxRetries) {
-          const error: SerpSearchError = {
-            success: false,
-            error: 'Search request timed out after multiple attempts. Please try again.'
-          };
-          throw error;
-        }
-      } else {
-        console.error(`SerpAPI request failed (attempt ${attempt}/${maxRetries}):`, fetchError.message);
-        if (attempt === maxRetries) {
-          throw fetchError;
-        }
-      }
+    } else {
+      console.log('No results found. Response keys:', Object.keys(data));
     }
     
-    // Wait before retrying (exponential backoff)
-    if (attempt < maxRetries) {
-      const delay = baseDelay * Math.pow(2, attempt - 1);
-      console.log(`Waiting ${delay}ms before retry...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  
-  if (!response) {
-    throw lastError || new Error('Failed to fetch after multiple retries');
-  }
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('SerpAPI error status:', response.status, errorText);
-    const error: SerpSearchError = {
-      success: false,
-      error: `SerpAPI error (${response.status}): ${errorText || 'Unknown error'}`,
-      details: errorText
-    };
-    throw error;
-  }
-
-  const data = await response.json();
-  
-  // Check for API errors
-  if (data.error) {
-    const error: SerpSearchError = {
-      success: false,
-      error: data.error
-    };
-    throw error;
-  }
-
-  // Extract results - for video searches, SerpAPI returns video_results instead of organic_results
-  const organicResults = data.video_results || data.organic_results || [];
-  
-  // Log first result structure for debugging
-  if (organicResults.length > 0) {
-    console.log('Sample result structure:', JSON.stringify(organicResults[0], null, 2));
-    console.log('Available text fields:', {
-      title: organicResults[0].title?.substring(0, 50),
-      snippet: organicResults[0].snippet?.substring(0, 50),
-      description: organicResults[0].description?.substring(0, 50),
-      channelDescription: organicResults[0].channel?.description?.substring(0, 50),
+    results = organicResults.slice(0, 5).map((result: any, index: number) => {
+      // Try to get the most complete description available
+      // Priority: channel description > snippet > description > title
+      const snippet = result.channel?.description || 
+                      result.snippet || 
+                      result.description || 
+                      result.title || 
+                      'No description available';
+      
+      return {
+        title: result.title || 'No title',
+        url: result.link || '',
+        snippet: snippet,
+        position: result.position || index + 1,
+        // Try to extract video duration from various possible fields
+        duration: result.rich_snippet?.extensions?.duration || 
+                  result.video?.duration || 
+                  result.duration || 
+                  null,
+        thumbnail: result.thumbnail || null,
+        raw: result // Include all raw data from SerpAPI
+      };
     });
-  } else {
-    console.log('No results found. Response keys:', Object.keys(data));
-  }
-  
-  const results = organicResults.slice(0, 5).map((result: any, index: number) => {
-    // Try to get the most complete description available
-    // Priority: channel description > snippet > description > title
-    const snippet = result.channel?.description || 
-                    result.snippet || 
-                    result.description || 
-                    result.title || 
-                    'No description available';
-    
-    return {
-      title: result.title || 'No title',
-      url: result.link || '',
-      snippet: snippet,
-      position: result.position || index + 1,
-      // Try to extract video duration from various possible fields
-      duration: result.rich_snippet?.extensions?.duration || 
-                result.video?.duration || 
-                result.duration || 
-                null,
-      thumbnail: result.thumbnail || null,
-      raw: result // Include all raw data from SerpAPI
-    };
-  });
 
+    // If we found results, break out of the retry loop
+    if (results.length > 0) {
+      console.log(`✅ Found ${results.length} results`);
+      break;
+    }
+    
+    // No results found - retry if we have attempts left
+    if (noResultsAttempt < maxNoResultsRetries) {
+      const delay = baseDelay * 2; // 2 second delay for no-results retries
+      console.log(`⚠️ No results found. Retrying search in ${delay}ms (attempt ${noResultsAttempt + 1}/${maxNoResultsRetries})...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    } else {
+      console.log('❌ No results found after all retry attempts');
+    }
+  }
+
+  // If still no results after all retries, throw error
   if (results.length === 0) {
     const error: SerpSearchError = {
       success: false,
-      error: 'No search results found'
+      error: 'No search results found after multiple attempts'
     };
     throw error;
   }
@@ -310,11 +336,11 @@ export async function searchWithSerp(query: string): Promise<SerpSearchResponse>
     originalQuery: query,
     wasTruncated: limitedQuery.length < cleanedQuery.length,
     metadata: {
-      searchMetadata: data.search_metadata,
-      searchParameters: data.search_parameters,
-      searchInformation: data.search_information,
+      searchMetadata: responseData?.search_metadata,
+      searchParameters: responseData?.search_parameters,
+      searchInformation: responseData?.search_information,
     },
-    fullResponse: data // Include complete SerpAPI response
+    fullResponse: responseData // Include complete SerpAPI response
   };
 }
 

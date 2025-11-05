@@ -31,6 +31,30 @@ export interface InstagramCrawlError {
 }
 
 /**
+ * Decodes common HTML entities to their character equivalents
+ * @param text - Text containing HTML entities
+ * @returns Decoded text
+ */
+function decodeHtmlEntities(text: string): string {
+  const entities: Record<string, string> = {
+    '&quot;': '"',
+    '&apos;': "'",
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&nbsp;': ' ',
+    '&#39;': "'",
+    '&#x27;': "'",
+    '&#x2F;': '/',
+    '&#47;': '/',
+  };
+
+  return text.replace(/&[a-zA-Z0-9#]+;/g, (entity) => {
+    return entities[entity] || entity;
+  });
+}
+
+/**
  * Crawls an Instagram URL to extract metadata (title, description, video URL)
  * @param url - The Instagram URL to crawl
  * @returns Promise resolving to crawl result or throwing an error
@@ -110,18 +134,25 @@ export async function crawlInstagramUrl(url: string): Promise<InstagramCrawlResu
       const match = html.match(pattern);
       if (match && match[1]) {
         title = match[1];
-        console.log('Found title with pattern:', pattern.source);
+        console.log('Found title with pattern:', pattern.source, title);
         break;
       }
     }
     
     // Extract content between &quot; entities if present
     if (title && title.includes('&quot;')) {
-      const quotedContentMatch = title.match(/&quot;([^&]+)&quot;/);
+      console.log('Title includes &quot;', title);
+      const quotedContentMatch = title.match(/&quot;([\s\S]+?)&quot;/);
       if (quotedContentMatch && quotedContentMatch[1]) {
         title = quotedContentMatch[1].trim();
         console.log('Extracted quoted title content:', title);
       }
+    }
+    
+    // Decode HTML entities from title
+    if (title) {
+      title = decodeHtmlEntities(title);
+      console.log('Decoded title:', title);
     }
     
     // Try multiple patterns to find description
@@ -150,11 +181,17 @@ export async function crawlInstagramUrl(url: string): Promise<InstagramCrawlResu
     
     // Extract content between &quot; entities if present
     if (description && description.includes('&quot;')) {
-      const quotedContentMatch = description.match(/&quot;([^&]+)&quot;/);
+      const quotedContentMatch = description.match(/&quot;([\s\S]+?)&quot;/);
       if (quotedContentMatch && quotedContentMatch[1]) {
         description = quotedContentMatch[1].trim();
         console.log('Extracted quoted content:', description);
       }
+    }
+    
+    // Decode HTML entities from description
+    if (description) {
+      description = decodeHtmlEntities(description);
+      console.log('Decoded description:', description);
     }
     
     // Try to extract author/username from og:url
