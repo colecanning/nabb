@@ -51,7 +51,7 @@ export async function extractEntities(llmInput: LLMInput): Promise<EntityExtract
   try {
 
     // Read the prompt template
-    const promptTemplatePath = join(process.cwd(), 'src', 'lib', 'prompt', 'basic.md');
+    const promptTemplatePath = join(process.cwd(), 'src', 'lib', 'prompt', 'v2.md');
     const promptTemplate = await readFile(promptTemplatePath, 'utf-8');
 
     // Replace JSON_INPUT with the actual data
