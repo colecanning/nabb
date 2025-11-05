@@ -54,14 +54,16 @@ export async function extractEntities(llmInput: LLMInput, promptTemplate?: strin
     // Read the prompt template if not provided
     let template = promptTemplate;
     if (!template) {
-      const promptTemplatePath = join(process.cwd(), 'src', 'lib', 'prompt', 'v2.md');
+      const promptTemplatePath = join(process.cwd(), 'src', 'lib', 'prompt', 'v3.md');
       template = await readFile(promptTemplatePath, 'utf-8');
     }
 
     // Change the llm input - rename 'author' to 'handle'
-    const { author, ...restOfInput } = llmInput;
+    const { author, title, videoDuration, ...restOfInput } = llmInput;
     const llmInputChanged = {
       handle: author,
+      caption: title,
+      videoDurationInSeconds: videoDuration,
       ...restOfInput,
     }
 
