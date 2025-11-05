@@ -125,6 +125,93 @@ export interface FindMatchResult {
 
 const DURATION_SIMILARITY = 1;
 
+/**
+ * Finds the first search result with a duration within ±1 second of the input duration
+ * @param searchResults - Array of search results to check
+ * @param videoDuration - The video duration in seconds to match against
+ * @returns Promise resolving to match result
+ */
+export async function findFirstMatchByDuration(
+  searchResults: SearchResult[],
+  videoDuration: number | null
+): Promise<FindMatchResult> {
+  try {
+    if (!searchResults || searchResults.length === 0) {
+      return {
+        success: false,
+        error: 'No search results available',
+      };
+    }
+
+    if (!videoDuration) {
+      return {
+        success: false,
+        error: 'Video duration is required for matching',
+      };
+    }
+
+    console.log('=== Starting Duration-Based Match Process ===');
+    console.log('Our video duration:', videoDuration, 'seconds');
+    console.log('Number of search results:', searchResults.length);
+    console.log('Looking for duration within ±1 second');
+
+    for (const result of searchResults) {
+      console.log('\n--- Checking result:', result.title);
+      
+      if (!result.duration) {
+        console.log('  → Skipping: No duration available');
+        continue;
+      }
+
+      const resultDurationSeconds = parseDurationToSeconds(result.duration);
+      console.log('  → Duration:', {
+        ours: videoDuration,
+        theirs: resultDurationSeconds,
+        theirsDurationString: result.duration
+      });
+
+      if (!resultDurationSeconds) {
+        console.log('  → Skipping: Could not parse duration');
+        continue;
+      }
+
+      const durationDiff = Math.abs(videoDuration - resultDurationSeconds);
+      console.log('  → Duration difference:', durationDiff, 'seconds');
+
+      if (durationDiff <= 1) {
+        console.log('✅ Match found! Duration within ±1 second');
+        
+        const matchedResult: MatchedResult = {
+          ...result,
+          matchScore: 1.0,
+          durationScore: 1.0,
+          titleScore: 0
+        };
+
+        return {
+          success: true,
+          matchedResult,
+        };
+      }
+    }
+
+    console.log('\n=== No Match Found ===');
+    console.log('❌ No result found with duration within ±1 second');
+    
+    return {
+      success: false,
+      error: 'No result found with duration within ±1 second of the video',
+    };
+  } catch (error) {
+    console.error('Match error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to find match',
+    };
+  }
+}
+
+// Legacy, don't need this complex matching anymore, just trust google order
 export async function findBestMatch(
   searchResults: SearchResult[],
   // titleText: string,

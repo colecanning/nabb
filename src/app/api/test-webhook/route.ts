@@ -4,7 +4,7 @@ import { getVideoDuration, VideoDurationResult } from '@/lib/backend/video-durat
 import { transcribeVideo, TranscriptionResult } from '@/lib/backend/video-transcription';
 import { searchEntityWithSerp, searchWithSerp, SerpSearchResult } from '@/lib/backend/serp-search';
 import { searchInstagramReels } from '@/lib/api';
-import { findBestMatch, FindMatchResult } from '@/lib/matching';
+import { findFirstMatchByDuration, FindMatchResult } from '@/lib/matching';
 import { Entity, MatchedResult } from '@/lib/store';
 import { extractEntities, convertWebhookOutputToLLMInput, EntityExtractionResult, LLMInput } from '@/lib/backend/entity-extraction';
 import { supabase } from '@/lib/backend/supabase';
@@ -84,7 +84,7 @@ export const processWebhook = async (webhookData: WebhookData, instagramUserId?:
   // Find the best match based on the video duration
   let bestMatch: FindMatchResult | null = null;
   if (searchResults.length > 0) {
-    bestMatch = await findBestMatch(searchResults, videoDurationResult?.duration || null);
+    bestMatch = await findFirstMatchByDuration(searchResults, videoDurationResult?.duration || null);
   }
 
   // If there is a best match, then crawl the match on instagram

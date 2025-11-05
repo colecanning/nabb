@@ -1,7 +1,7 @@
 'use client';
 
 import { useInstagramWebhookDataStore, useSearchResultsStore, useMatchResultsStore, useVideoDurationStore } from '@/lib/store';
-import { findBestMatch } from '@/lib/matching';
+import { findFirstMatchByDuration } from '@/lib/matching';
 
 export default function FindMatchSection() {
   // const { titleText } = useInstagramWebhookDataStore();
@@ -18,7 +18,7 @@ export default function FindMatchSection() {
     setFindingMatch(true);
     setMatchedResult(null);
 
-    const result = await findBestMatch(searchResults, videoDuration);
+    const result = await findFirstMatchByDuration(searchResults, videoDuration);
     
     if (result.success && result.matchedResult) {
       setMatchedResult(result.matchedResult);
