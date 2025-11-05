@@ -1,22 +1,25 @@
 'use client';
 
-import { useInstagramWebhookDataStore, useSearchResultsStore } from '@/lib/store';
+import { useInstagramWebhookDataStore, useSearchResultsStore, useTranscriptionStore } from '@/lib/store';
 import { searchInstagramReels } from '@/lib/api';
 
 export default function FindInstagramReelSection() {
-  const { descriptionText } = useInstagramWebhookDataStore();
+  const { titleText } = useInstagramWebhookDataStore();
+  const { transcription } = useTranscriptionStore();
   const { searchResults, searching, setSearchResults, setSearching } = useSearchResultsStore();
 
+  const searchString = titleText || transcription || null;
+
   const handleSearch = async () => {
-    if (!descriptionText) {
-      alert('Please process an Instagram link first to get a description');
+    if (!searchString) {
+      alert('Please process an Instagram link first to get a title or transcription');
       return;
     }
 
     setSearching(true);
     setSearchResults(null);
 
-    const result = await searchInstagramReels(descriptionText);
+    const result = await searchInstagramReels(searchString);
     
     if (result.success) {
       setSearchResults(result.results || []);
@@ -41,31 +44,31 @@ export default function FindInstagramReelSection() {
       <button
         type="button"
         onClick={handleSearch}
-        disabled={searching || !descriptionText}
+        disabled={searching || !searchString}
         style={{
           width: '100%',
           padding: '14px',
           fontSize: '18px',
           fontWeight: '600',
           color: '#ffffff',
-          backgroundColor: searching || !descriptionText ? '#9e9e9e' : '#4285f4',
+          backgroundColor: searching || !searchString ? '#9e9e9e' : '#4285f4',
           border: 'none',
           borderRadius: '6px',
-          cursor: searching || !descriptionText ? 'not-allowed' : 'pointer',
+          cursor: searching || !searchString ? 'not-allowed' : 'pointer',
           transition: 'background-color 0.2s',
           boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
         }}
         onMouseEnter={(e) => {
-          if (!searching && descriptionText) e.currentTarget.style.backgroundColor = '#357ae8';
+          if (!searching && searchString) e.currentTarget.style.backgroundColor = '#357ae8';
         }}
         onMouseLeave={(e) => {
-          if (!searching && descriptionText) e.currentTarget.style.backgroundColor = '#4285f4';
+          if (!searching && searchString) e.currentTarget.style.backgroundColor = '#4285f4';
         }}
       >
         {searching ? '🔍 Searching...' : '🔍 Search'}
       </button>
 
-      {!descriptionText && (
+      {!searchString && (
         <p style={{
           fontSize: '14px',
           color: '#666',
