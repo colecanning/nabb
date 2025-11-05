@@ -74,19 +74,19 @@ export async function crawlInstagramUrl(url: string): Promise<InstagramCrawlResu
     console.log('HTML length:', html.length);
     console.log('First 500 chars:', html.substring(0, 500));
     
-    // Save HTML to file for debugging
-    try {
-      const debugDir = join(process.cwd(), 'public', 'debug');
-      if (!existsSync(debugDir)) {
-        await mkdir(debugDir, { recursive: true });
-      }
-      const timestamp = Date.now();
-      const htmlPath = join(debugDir, `instagram_${timestamp}.html`);
-      await writeFile(htmlPath, html);
-      console.log('Saved HTML to:', htmlPath);
-    } catch (err) {
-      console.error('Failed to save debug HTML:', err);
-    }
+    // // Save HTML to file for debugging
+    // try {
+    //   const debugDir = join(process.cwd(), 'public', 'debug');
+    //   if (!existsSync(debugDir)) {
+    //     await mkdir(debugDir, { recursive: true });
+    //   }
+    //   const timestamp = Date.now();
+    //   const htmlPath = join(debugDir, `instagram_${timestamp}.html`);
+    //   await writeFile(htmlPath, html);
+    //   console.log('Saved HTML to:', htmlPath);
+    // } catch (err) {
+    //   console.error('Failed to save debug HTML:', err);
+    // }
     
     let description = null;
     let title = null;
