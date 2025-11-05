@@ -6,7 +6,7 @@ import { searchEntityWithSerp, searchWithSerp, SerpSearchResult } from '@/lib/ba
 import { searchInstagramReels } from '@/lib/api';
 import { findFirstMatchByDuration, FindMatchResult } from '@/lib/matching';
 import { Entity, MatchedResult } from '@/lib/store';
-import { extractEntities, convertWebhookOutputToLLMInput, EntityExtractionResult, LLMInput } from '@/lib/backend/entity-extraction';
+import { extractEntities, EntityExtractionResult, LLMInput } from '@/lib/backend/entity-extraction';
 import { supabase } from '@/lib/backend/supabase';
 
 export interface WebhookOutput {
@@ -20,6 +20,7 @@ export interface WebhookOutput {
       title: string | null;
       videoUrl: string | null;
       author: string | null;
+      description: string | null;
     } | null;
     entities?: Entity[];
   };
@@ -102,6 +103,7 @@ export const processWebhook = async (webhookData: WebhookData, instagramUserId?:
     title: webhookData.title || null,
     videoDuration: videoDurationResult?.duration || null,
     videoTranscription: audioTranscriptionResult?.transcription || undefined,
+    metaDescription: bestMatchInstagramCrawlResult?.description || undefined,
   } as LLMInput;
 
   const entityExtractionResult = await extractEntities(llmInput, customPrompt || undefined);
@@ -126,6 +128,7 @@ export const processWebhook = async (webhookData: WebhookData, instagramUserId?:
         title: bestMatchInstagramCrawlResult?.title || null,
         videoUrl: bestMatchInstagramCrawlResult?.videoUrl || null,
         author: bestMatchInstagramCrawlResult?.author || null,
+        description: bestMatchInstagramCrawlResult?.description || null,
       } : null,
       entities: entitiesFinal,
     },
@@ -177,6 +180,7 @@ export async function POST(request: NextRequest) {
     const webhookData = {
       title: instagramCrawlResult.title || null,
       videoUrl: instagramCrawlResult.videoUrl || null,
+      description: instagramCrawlResult.description || null,
     }
 
     // Extract instagram user ID from the author field if available

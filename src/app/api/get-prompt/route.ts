@@ -4,7 +4,7 @@ import { join } from 'path';
 
 export async function GET() {
   try {
-    const promptPath = join(process.cwd(), 'src', 'lib', 'prompt', 'v3.md');
+    const promptPath = join(process.cwd(), 'src', 'lib', 'prompt', 'latest.md');
     const content = await readFile(promptPath, 'utf-8');
 
     return NextResponse.json({

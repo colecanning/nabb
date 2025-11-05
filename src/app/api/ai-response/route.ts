@@ -17,6 +17,8 @@ export async function POST(request: NextRequest) {
     // Convert to LLMInput
     const llmInput = convertWebhookOutputToLLMInput(webhookOutput);
 
+    console.log('llmInput', llmInput);
+
     // Extract entities using the reusable function, passing custom prompt if available
     const result = await extractEntities(llmInput, customPrompt);
 
@@ -49,6 +51,7 @@ export async function GET(request: NextRequest) {
           title: "Starbucks Pumpkin Cream Cold Brew Review",
           videoUrl: "https://instagram.com/reel/example",
           author: "@coffeelover123",
+          description: "A review of the Starbucks Pumpkin Cream Cold Brew",
         }
       }
     };

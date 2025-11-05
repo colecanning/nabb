@@ -27,6 +27,7 @@ export default function ScrapeMatchSection() {
           bestMatch: {
             videoUrl: data.videoUrl || null,
             title: data.title || null,
+            description: data.description || null,
           }
         }
       });

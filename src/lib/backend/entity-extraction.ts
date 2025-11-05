@@ -9,6 +9,7 @@ export interface LLMInput {
     title: string | null;
     videoDuration?: number | null;
     videoTranscription?: string;
+    metaDescription?: string;
 }
 
 export interface Entity {
@@ -39,6 +40,7 @@ export function convertWebhookOutputToLLMInput(webhookOutput: WebhookOutput): LL
     title: webhookOutput.result?.title || null,
     videoDuration: webhookOutput.result?.videoDuration || null,
     videoTranscription: webhookOutput.result?.videoTranscription || undefined,
+    metaDescription: webhookOutput.result?.bestMatch?.description || undefined,
   };
 }
 
@@ -54,18 +56,21 @@ export async function extractEntities(llmInput: LLMInput, promptTemplate?: strin
     // Read the prompt template if not provided
     let template = promptTemplate;
     if (!template) {
-      const promptTemplatePath = join(process.cwd(), 'src', 'lib', 'prompt', 'v3.md');
+      const promptTemplatePath = join(process.cwd(), 'src', 'lib', 'prompt', 'latest.md');
       template = await readFile(promptTemplatePath, 'utf-8');
     }
 
     // Change the llm input - rename 'author' to 'handle'
     const { author, title, videoDuration, ...restOfInput } = llmInput;
     const llmInputChanged = {
-      handle: author,
       caption: title,
+      handle: author,
       videoDurationInSeconds: videoDuration,
+      metaDescription: restOfInput.metaDescription,
       ...restOfInput,
     }
+
+    console.log('llmInputChanged', llmInputChanged);
 
     // Replace JSON_INPUT with the actual data
     const prompt = template.replace('JSON_INPUT', JSON.stringify(llmInputChanged, null, 2));
