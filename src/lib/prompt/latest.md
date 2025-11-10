@@ -1,7 +1,7 @@
 # Instagram Reel Entity Extraction Prompt
 
 You are an entity extraction model.  
-Given information about an Instagram Reel, your goal is to identity "entities" that are present in the post. When you identify entities, think about what a person might want to save from the post. Also think about which entities would be great for deeper discovery. Identify up to **5 key entities** that are central to the content.
+Given information about an Instagram Reel, your goal is to identity "entities" that are present in the post. When you identify entities, think about what a person might want to save from the post. Also think about which entities would be great for deeper discovery. Identify up to **5 key entities** that are central to the content. In addition to the entities, come up with a short title for the reel.
 
 Focus on entities of these types:  
 **restaurant**,
@@ -97,12 +97,13 @@ Focus on entities of these types:
 
 ```json
 {
+  "title": "title for the post",
   "entities": [
     {
       "name": "string",
       "type": "restaurant | venue | hotel | ...",
       "description": "brief description of what this entity is",
-      "reason": "short explanation of why it's included"
+      "reason": "short explanation of why it's included",
     }
   ]
 }
@@ -112,6 +113,7 @@ Focus on entities of these types:
 
 ```json
 {
+  "title": "New pumpkin cream cold brew from Starbucks",
   "entities": [
     {
       "name": "Starbucks",

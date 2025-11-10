@@ -205,6 +205,7 @@ export interface Entity {
 export interface EntityExtractionData {
   success?: boolean;
   entities?: Entity[];
+  postTitle?: string;
   prompt?: string;
   response?: string;
   error?: string;

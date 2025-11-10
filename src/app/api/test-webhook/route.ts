@@ -23,6 +23,7 @@ export interface WebhookOutput {
       description: string | null;
     } | null;
     entities?: Entity[];
+    postTitle?: string | null;
   };
   debug?: {
     searchResults: SerpSearchResult[] | null;
@@ -109,6 +110,7 @@ export const processWebhook = async (webhookData: WebhookData, instagramUserId?:
   const entityExtractionResult = await extractEntities(llmInput, customPrompt || undefined);
 
   const entities = entityExtractionResult?.entities || [];
+  const postTitle = entityExtractionResult?.postTitle || null;
   const entitiesWithUrls: Entity[] = [];
   for (const entity of entities) {
     const entityWithUrls = await searchEntityWithSerp(entity);
@@ -131,6 +133,7 @@ export const processWebhook = async (webhookData: WebhookData, instagramUserId?:
         description: bestMatchInstagramCrawlResult?.description || null,
       } : null,
       entities: entitiesFinal,
+      postTitle: postTitle,
     },
     debug: {
       searchResults,

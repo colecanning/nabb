@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { supabase } from '@/lib/backend/supabase';
 import Header from '@/components/Header';
+import { EntityUrl } from '@/lib/store';
 
 interface SavePageProps {
   params: {
@@ -307,10 +308,10 @@ export default async function SavePage({ params }: SavePageProps) {
                       paddingLeft: '20px',
                       listStyleType: 'disc'
                     }}>
-                      {entity.urls.map((url: string, urlIndex: number) => (
+                      {entity.urls.map((url: EntityUrl, urlIndex: number) => (
                         <li key={urlIndex} style={{ marginBottom: '4px' }}>
                           <a
-                            href={url}
+                            href={url.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
@@ -320,7 +321,7 @@ export default async function SavePage({ params }: SavePageProps) {
                               wordBreak: 'break-all'
                             }}
                           >
-                            {url}
+                            {url.title || url.url}
                           </a>
                         </li>
                       ))}

@@ -16,6 +16,7 @@ export interface LLMInput {
 export interface EntityExtractionResult {
   success: boolean;
   entities?: Array<Entity>;
+  postTitle?: string;
   prompt?: string;
   response?: string;
   llmInput?: LLMInput;
@@ -76,9 +77,11 @@ export async function extractEntities(llmInput: LLMInput, promptTemplate?: strin
 
     // Try to parse the response as JSON to extract entities
     let entities;
+    let postTitle;
     try {
       const parsed = JSON.parse(text);
       entities = parsed.entities;
+      postTitle = parsed.title;
     } catch (e) {
       // If parsing fails, return the raw response
       console.warn('Failed to parse AI response as JSON:', e);
@@ -87,6 +90,7 @@ export async function extractEntities(llmInput: LLMInput, promptTemplate?: strin
     return {
       success: true,
       entities,
+      postTitle,
       prompt,
       response: text,
       llmInput,

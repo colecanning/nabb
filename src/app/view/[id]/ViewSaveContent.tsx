@@ -72,7 +72,7 @@ export function ViewSaveContent({ save }: ContentProps) {
         disableGutters
         sx={{
           // border: '1px solid red',
-          paddingTop: 0,
+          paddingTop: 1,
         }}
       >
         <Stack direction="column" gap={3}>
@@ -87,10 +87,13 @@ export function ViewSaveContent({ save }: ContentProps) {
             gap: '16px',
           }}
         >
-          <Typography variant="h6" sx={{
-            fontWeight: 'bold',
-          }}>
-            Title Here
+          <Typography variant="h6" 
+            sx={{
+              fontWeight: 'bold',
+            }}
+            align="center"
+          >
+            {output?.result?.postTitle || ''}
           </Typography>
           <Stack 
             direction="column" 
