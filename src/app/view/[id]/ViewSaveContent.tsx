@@ -26,7 +26,7 @@ TODO:
 
 export function ViewSaveContent({ save }: ContentProps) {
   const output = save.output as unknown as WebhookOutput;
-  const videoUrl = output?.result?.videoUrl;
+  const videoUrl = output?.result?.videoUrl ? output?.result?.videoUrl + '#t=0.1' : null;
   const username = output?.result?.bestMatch?.author;
   
   // Calculate total number of links across all entities
