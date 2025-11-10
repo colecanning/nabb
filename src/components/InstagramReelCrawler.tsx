@@ -13,6 +13,7 @@ export default function InstagramReelCrawler() {
   
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<InstagramCrawlResult | null>(null);
+  const [saveId, setSaveId] = useState<string | null>(null);
   
   // Get state and actions from Zustand store
   const { videoUrl, titleText, descriptionText, authorText, setVideoUrl, setTitleText, setDescriptionText, setAuthorText, setInstagramData } = useInstagramWebhookDataStore();
@@ -81,6 +82,7 @@ export default function InstagramReelCrawler() {
         throw new Error("Failed request")
       }
 
+      setSaveId(data.saveId);
       setResult(data.instagramCrawlResult);
       
       // Populate the state variables when successful
@@ -400,6 +402,29 @@ export default function InstagramReelCrawler() {
             {loading ? 'Processing...' : 'Use Test Data'}
           </button>
         </div>
+
+        {saveId && (
+          <div style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
+              Save ID: {saveId}
+            </p>
+            <button
+              onClick={() => window.open(`/view/${saveId}`, '_blank')}
+              style={{
+                padding: '6px 12px',
+                fontSize: '14px',
+                backgroundColor: '#1976d2',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              View
+            </button>
+          </div>
+        )}
       </form>
 
       {result && (

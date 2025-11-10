@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Header from '@/components/Header';
 import InstagramReelCrawler from '@/components/InstagramReelCrawler';
 import AudioLengthSection from '@/components/AudioLengthSection';
@@ -14,6 +15,7 @@ import { useFinalResultStore } from '@/lib/store';
 export default function CyclePage() {
   // Get final result from Zustand store
   const { finalResult } = useFinalResultStore();
+  const [isResultCollapsed, setIsResultCollapsed] = useState(true);
 
   return (
     <>
@@ -47,31 +49,52 @@ export default function CyclePage() {
         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
         marginTop: '30px'
       }}>
-        <h2 style={{ fontSize: '28px', marginTop: '0', marginBottom: '20px' }}>Result</h2>
+        <h2 
+          onClick={() => setIsResultCollapsed(!isResultCollapsed)}
+          style={{ 
+            fontSize: '28px', 
+            marginTop: '0', 
+            marginBottom: isResultCollapsed ? '0' : '20px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            userSelect: 'none'
+          }}
+        >
+          Result
+          <span style={{ fontSize: '20px' }}>
+            {isResultCollapsed ? '▶' : '▼'}
+          </span>
+        </h2>
         
-        {Object.keys(finalResult).length > 0 ? (
-          <pre style={{
-            backgroundColor: '#263238',
-            color: '#aed581',
-            padding: '20px',
-            borderRadius: '6px',
-            overflow: 'auto',
-            fontSize: '14px',
-            lineHeight: '1.5',
-            fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-            margin: '0'
-          }}>
-            {JSON.stringify(finalResult, null, 2)}
-          </pre>
-        ) : (
-          <p style={{
-            fontSize: '14px',
-            color: '#666',
-            fontStyle: 'italic',
-            margin: '0'
-          }}>
-            Process an Instagram link above to see the final result
-          </p>
+        {!isResultCollapsed && (
+          <>
+            {Object.keys(finalResult).length > 0 ? (
+              <pre style={{
+                backgroundColor: '#263238',
+                color: '#aed581',
+                padding: '20px',
+                borderRadius: '6px',
+                overflow: 'auto',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                margin: '0'
+              }}>
+                {JSON.stringify(finalResult, null, 2)}
+              </pre>
+            ) : (
+              <p style={{
+                fontSize: '14px',
+                color: '#666',
+                fontStyle: 'italic',
+                margin: '0'
+              }}>
+                Process an Instagram link above to see the final result
+              </p>
+            )}
+          </>
         )}
       </div>
 
