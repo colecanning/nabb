@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchEntityWithSerp } from '@/lib/backend/serp-search';
-import { Entity } from '@/lib/backend/entity-extraction';
+import type { Entity } from '@/lib/store';
 
 export async function POST(request: NextRequest) {
   try {
