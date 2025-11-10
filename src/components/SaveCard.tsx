@@ -21,17 +21,13 @@ export default function SaveCard({ save }: SaveCardProps) {
   const hasOutput = !!output;
 
   return (
-    <Link
-      href={`/saves/${save.id}`}
+    <div
       style={{
         backgroundColor: '#ffffff',
         padding: '24px',
         borderRadius: '8px',
         border: '1px solid #e0e0e0',
         boxShadow: isHovered ? '0 4px 8px rgba(0, 0, 0, 0.15)' : '0 2px 4px rgba(0, 0, 0, 0.1)',
-        textDecoration: 'none',
-        color: 'inherit',
-        display: 'block',
         transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
         transition: 'transform 0.2s, box-shadow 0.2s'
       }}
@@ -103,7 +99,8 @@ export default function SaveCard({ save }: SaveCardProps) {
         display: 'flex',
         gap: '12px',
         fontSize: '13px',
-        color: '#888'
+        color: '#888',
+        marginBottom: '16px'
       }}>
         <span>
           ID: <code style={{
@@ -121,7 +118,60 @@ export default function SaveCard({ save }: SaveCardProps) {
           </span>
         )}
       </div>
-    </Link>
+
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginTop: '16px'
+      }}>
+        <Link
+          href={`/view/${save.id}`}
+          style={{
+            flex: 1,
+            textAlign: 'center',
+            backgroundColor: '#2196F3',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            fontSize: '14px',
+            fontWeight: '500',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#1976d2';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#2196F3';
+          }}
+        >
+          View Page
+        </Link>
+        <Link
+          href={`/saves/${save.id}`}
+          style={{
+            flex: 1,
+            textAlign: 'center',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '6px',
+            textDecoration: 'none',
+            fontSize: '14px',
+            fontWeight: '500',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#5a6268';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#6c757d';
+          }}
+        >
+          Debug Details
+        </Link>
+      </div>
+    </div>
   );
 }
 
