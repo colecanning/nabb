@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { WebhookOutput } from '@/app/api/test-webhook/route';
+import { Entity } from '../store';
 
 export interface LLMInput {
     author: string | null;
@@ -10,14 +11,6 @@ export interface LLMInput {
     videoDuration?: number | null;
     videoTranscription?: string;
     metaDescription?: string;
-}
-
-export interface Entity {
-  name: string;
-  type: 'restaurant' | 'product' | 'place' | 'service' | 'other';
-  description: string;
-  reason: string;
-  urls?: string[];
 }
 
 export interface EntityExtractionResult {

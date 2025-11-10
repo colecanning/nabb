@@ -5,6 +5,7 @@ import { useEntityExtractionStore, useFinalResultStore, useInstagramWebhookDataS
 import { crawlInstagram } from '@/lib/api';
 import { TestWebhookRespose, WebhookOutput } from '@/app/api/test-webhook/route';
 import { InstagramCrawlResult } from '@/lib/backend/instagram-crawler';
+import testData from './testData.json';
 
 export default function InstagramReelCrawler() {
   // const [url, setUrl] = useState('https://www.instagram.com/reel/DCKH6RPSKDe/');
@@ -15,7 +16,7 @@ export default function InstagramReelCrawler() {
   
   // Get state and actions from Zustand store
   const { videoUrl, titleText, descriptionText, authorText, setVideoUrl, setTitleText, setDescriptionText, setAuthorText, setInstagramData } = useInstagramWebhookDataStore();
-  const { updateFinalResult } = useFinalResultStore();
+  const { updateFinalResult, setFinalResult } = useFinalResultStore();
   const { setVideoDuration } = useVideoDurationStore();
   const { setTranscription } = useTranscriptionStore();
   const { setSearchResults } = useSearchResultsStore();
@@ -117,6 +118,11 @@ export default function InstagramReelCrawler() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUseTestData = async () => {
+    setFinalResult(testData as WebhookOutput);
+
   };
 
   return (
@@ -365,6 +371,33 @@ export default function InstagramReelCrawler() {
             }}
           >
             {loading ? 'Processing...' : '🔗 Test Webhook'}
+          </button>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleUseTestData}
+            style={{
+              flex: '1',
+              padding: '14px',
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#ffffff',
+              backgroundColor: loading ? '#9e9e9e' : '#0095f6',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.2s',
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) e.currentTarget.style.backgroundColor = '#0077cc';
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) e.currentTarget.style.backgroundColor = '#0095f6';
+            }}
+          >
+            {loading ? 'Processing...' : 'Use Test Data'}
           </button>
         </div>
       </form>

@@ -1,4 +1,5 @@
-import { Entity } from './entity-extraction';
+import { getLinkPreview } from "link-preview-js";
+import { Entity, EntityUrl } from "../store";
 
 export interface SerpSearchResult {
   title: string;
@@ -97,16 +98,52 @@ export async function searchEntityWithSerp(entity: Entity): Promise<Entity> {
     throw new Error('No search results found');
   }
 
+  console.log("Fetching Link Previews");
+
   // Extract just the URLs from the top 5 results
   const urls = organicResults
     .slice(0, 5)
     .map((result: any) => result.link)
     .filter((url: string) => url); // Remove any undefined/null URLs
 
-  // Return the entity with URLs populated
+  // Get the link preview for each URL and transform to EntityUrl
+  const entityUrls = await Promise.all(urls.map(async (url: string, index: number) => {
+    try {
+      const preview = await getLinkPreview(url) as any;
+      
+      // Transform link preview to EntityUrl format
+      const entityUrl: EntityUrl = {
+        url: preview.url || url,
+        title: preview.title || '',
+        siteName: preview.siteName || '',
+        description: preview.description || '',
+        mediaType: preview.mediaType || 'website',
+        image: (Array.isArray(preview.images) && preview.images.length > 0) ? preview.images[0] : '',
+        favicon: (Array.isArray(preview.favicons) && preview.favicons.length > 0) ? preview.favicons[0] : '',
+      };
+      
+      return entityUrl;
+    } catch (e: any) {
+      console.log(`Could not find link preview for ${url}: ${e?.message}`);
+      // Return a basic EntityUrl with just the URL
+      return {
+        url,
+        title: '',
+        siteName: '',
+        description: '',
+        mediaType: 'website',
+        image: '',
+        favicon: '',
+      } as EntityUrl;
+    }
+  }));
+
+  console.log('entityUrls', entityUrls);
+
+  // Return the entity with URLs populated as EntityUrl[]
   return {
     ...entity,
-    urls
+    urls: entityUrls
   };
 }
 

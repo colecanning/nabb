@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useFinalResultStore } from '@/lib/store';
-import { Entity } from '@/lib/backend/entity-extraction';
+import { useFinalResultStore, Entity } from '@/lib/store';
 
 export default function ExtractEntityUrlsSection() {
   const { finalResult, updateFinalResult } = useFinalResultStore();
@@ -179,33 +178,90 @@ export default function ExtractEntityUrlsSection() {
                     borderRadius: '4px',
                     border: '1px solid #ddd'
                   }}>
-                    <strong style={{ fontSize: '14px', color: '#333' }}>
+                    <strong style={{ fontSize: '14px', color: '#333', marginBottom: '12px', display: 'block' }}>
                       URLs ({entity.urls.length}):
                     </strong>
-                    <ul style={{
-                      marginTop: '8px',
-                      marginBottom: '0',
-                      paddingLeft: '20px',
-                      listStyleType: 'disc'
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px'
                     }}>
-                      {entity.urls.map((url, urlIndex) => (
-                        <li key={urlIndex} style={{ marginBottom: '4px' }}>
-                          <a
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              color: '#1976d2',
-                              textDecoration: 'none',
-                              fontSize: '13px',
+                      {entity.urls.map((entityUrl, urlIndex) => (
+                        <div key={urlIndex} style={{
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          backgroundColor: '#fafafa',
+                          display: 'flex',
+                          gap: '12px'
+                        }}>
+                          {entityUrl.image && (
+                            <img 
+                              src={entityUrl.image} 
+                              alt={entityUrl.title || 'Preview'}
+                              style={{
+                                width: '80px',
+                                height: '80px',
+                                objectFit: 'cover',
+                                borderRadius: '4px',
+                                flexShrink: 0
+                              }}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <a
+                              href={entityUrl.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: '#1976d2',
+                                textDecoration: 'none',
+                                fontSize: '14px',
+                                fontWeight: '600',
+                                display: 'block',
+                                marginBottom: '4px'
+                              }}
+                            >
+                              {entityUrl.title || entityUrl.url}
+                            </a>
+                            {entityUrl.siteName && (
+                              <div style={{
+                                fontSize: '12px',
+                                color: '#666',
+                                marginBottom: '4px'
+                              }}>
+                                {entityUrl.siteName}
+                              </div>
+                            )}
+                            {entityUrl.description && (
+                              <div style={{
+                                fontSize: '12px',
+                                color: '#888',
+                                lineHeight: '1.4',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical'
+                              }}>
+                                {entityUrl.description}
+                              </div>
+                            )}
+                            <div style={{
+                              fontSize: '11px',
+                              color: '#999',
+                              marginTop: '4px',
                               wordBreak: 'break-all'
-                            }}
-                          >
-                            {url}
-                          </a>
-                        </li>
+                            }}>
+                              {entityUrl.url}
+                            </div>
+                          </div>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 ) : (
                   <div style={{
