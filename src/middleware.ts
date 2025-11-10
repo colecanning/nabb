@@ -11,10 +11,12 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - images (public image assets)
      * - login (login page)
      * - saves (public save detail pages)
+     * - view (public view pages)
      */
-    '/((?!api/auth|api/webhook|api/process-reel|_next/static|_next/image|favicon.ico|login|saves).*)',
+    '/((?!api/auth|api/webhook|api/process-reel|_next/static|_next/image|favicon.ico|images|login|saves|view).*)',
   ],
 };
 
